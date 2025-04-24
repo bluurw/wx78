@@ -1,0 +1,14 @@
+#DEFAULT
+bin
+include
+lib
+lib64
+
+#CUSTOM
+wordlists
+anotacao.txt
+requests.txt
+
+#PY
+main.PY
+subdomain.py
