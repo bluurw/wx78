@@ -6,9 +6,14 @@ lib64
 
 #CUSTOM
 wordlists
+user-agent
 anotacao.txt
 requests.txt
 
 #PY
-main.PY
-subdomain.py
+main.py
+idor.py
+functions.py
+setup.py
+sqli.py
+useragent.py
