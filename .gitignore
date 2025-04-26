@@ -1,16 +1,19 @@
-#DEFAULT
+# FOLDER DEFAULT
 bin
 include
 lib
 lib64
 
-#CUSTOM
-wordlists
-user-agent
+# FILE DEFAULT
 anotacao.txt
 requests.txt
 
-#PY
+# FOLDER CUSTOM
+MiTM
+wordlists
+user-agent
+
+# FILE CUSTOM
 main.py
 idor.py
 functions.py
