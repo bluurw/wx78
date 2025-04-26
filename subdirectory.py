@@ -1,16 +1,15 @@
-from datetime import datetime as dt
 import time
 
 import functions
+import essentials
 
-def subdirectory(url, file, filter_status_code=[], timeout=10, SSL=True, redirect=False, proxies=None, interval=0):
-
-    # colocar um intervalo randomico
-    # colocar um gerador de user-agent randomico
+def subdirectory(url, file, filter_status_code=[], ua_status=False, timeout=10, redirect=False, SSL=True, proxies=None, interval=0):
+    
     # alterar o test_url para que aceite http tambem
-    # verificar como retornar dados do ssl
 
-    payloads = functions.fileReader(file)
+    subdirectory_json = 'subdirectory.json'
+
+    payloads = essentials.fileReader(file)
     if not payloads:
         print(f'[-] Nao encontrado: {file}')
         return False, f'[-] Nao encontrado: {file}'
@@ -21,21 +20,30 @@ def subdirectory(url, file, filter_status_code=[], timeout=10, SSL=True, redirec
         test_url = 'https://' + test_url
         
         time.sleep(interval) # intervalo entre requisicoes
-        time_now = dt.now().strftime('%d/%m/%Y %H:%M:%S') # hora atual
         # requisicao
-        status, r = functions.request(test_url, timeout=timeout, SSL=SSL, redirect=redirect, proxies=proxies) 
-        
+        status, r = functions.request(test_url, timeout=timeout, SSL=SSL, 
+                                        redirect=redirect, proxies=proxies) 
         if status:
             if len(filter_status_code) == 0 or (len(filter_status_code) > 0 and r.status_code in filter_status_code):
-                print(f'[+][{time_now}][{r.status_code}] {r.url}')
+                print(f'[+][{functions.time_now()}][{r.status_code}] {r.url}')
         else:
-            print(f'[-][{time_now}] {r}')
+            print(f'[-][{functions.time_now()}] {r}')
+        
+        # json nao sera filtrado
+        json_obj_response = {
+            'hostname': url,
+            'payload': payload,
+            'url': test_url,
+            'status_code': r.status_code if status else 404,
+            'error': False if status else True,
+            'error_details': None if status else r,
+            'date_time': functions.time_now(),
+            'response_headers': {},
+            'response_certificate':{},
+        }
+        essentials.json_write(json_obj_response, subdirectory_json)
 
 
 # Example use
-subdirectory('pluxee.com.br',
-            'wordlists/subdirectory/wordlist.txt',
-            timeout=10,
-            redirect=True,
-            proxies=None, 
-            )
+subdirectory('pluxee.com.br', 'wordlists/subdirectory/wordlist.txt', timeout=10, 
+                redirect=True, proxies=None)
