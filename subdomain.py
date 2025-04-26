@@ -7,6 +7,8 @@ import certificate
 def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=10, SSL=True, proxies=None, interval=0, advanced=False, cert=False):
     
     subdomain_json = 'subdomain.json'
+    headers_metadata = {}
+    cert_metadata = {}
 
     payloads = essentials.fileReader(file)
     if not payloads:
@@ -31,8 +33,9 @@ def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=10, SSL
                     print(f'[-]{functions.time_now()}{404}{test_url} -> {err}')
                 # colocar o log aqui fara que independentemente do status filtrado, ele seja retornado
                 json_obj_response = {
-                    'url': url,
+                    'hostname': url,
                     'payload': payload,
+                    'url': test_url,
                     'status_code': 404,
                     'error': True,
                     'error_details': err,
@@ -60,18 +63,6 @@ def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=10, SSL
                 if cert:
                     cert_metadata = certificate.certificate_vulnerability(f'{payload}.{url}')
                     print(f'{" "*3}[+]{cert_metadata}')
-                
-                json_obj_response = {
-                    'url': url,
-                    'payload': payload,
-                    'status_code': r.status_code,
-                    'error': False,
-                    'error_details': None,
-                    'date_time': functions.time_now(),
-                    'response_headers': headers_metadata if len(headers_metadata) > 0 else {},
-                    'response_certificate': cert_metadata if len(cert_metadata) > 0 else {},
-                }
-                essentials.json_write(json_obj_response, subdomain_json)
         
         else:
             if 'NameResolutionError' in str(r): # filtra erros de dns, como impossibilidade na resolucao
@@ -81,17 +72,18 @@ def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=10, SSL
                 if len(filter_status_code) == 0 or 404 in filter_status_code:
                     print(f'[-][{functions.time_now()}][404] {r}')
             
-            json_obj_response = {
-                    'url': url,
-                    'payload': payload,
-                    'status_code': 404,
-                    'error': True,
-                    'error_details': r,
-                    'date_time': functions.time_now(),
-                    'response_headers': {},
-                    'response_certificate': {},
-            }
-            essentials.json_write(json_obj_response, subdomain_json)
+        json_obj_response = {
+            'hostname': url,
+            'payload': payload,
+            'url': test_url,
+            'status_code': r.status_code if status else 404,
+            'error': False if status else True,
+            'error_details': None if status else r,
+            'date_time': functions.time_now(),
+            'response_headers': headers_metadata if advanced else {},
+            'response_certificate': cert_metadata if cert else {},
+        }
+        essentials.json_write(json_obj_response, subdomain_json)
 
 
 # Exemplo de uso
@@ -101,5 +93,5 @@ subdomain('sodexo.com', 'wordlists/subdomain/wordlist.txt', filter_status_code=[
 # ERROS:
 '''
 raise LocationParseError(f"'{host}', label empty or too long") from None
-urllib3.exceptions.LocationParseError: Failed to parse: 'm..socasadas.com', label empty or too long
+urllib3.exceptions.LocationParseError: Failed to parse: 'm..sodexo.com', label empty or too long
 '''
