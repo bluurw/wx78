@@ -6,7 +6,10 @@ import certificate
 
 def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=10, SSL=True, proxies=None, interval=0, advanced=False, cert=False):
     
-    subdomain_json = 'subdomain.json'
+    # ter http
+    # sistema que verifica informacoes da tecnologia usada
+
+    name_save_file = 'subdomain.json'
     headers_metadata = {}
     cert_metadata = {}
 
@@ -43,7 +46,7 @@ def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=10, SSL
                     'response_headers': {},
                     'response_certificate':{},
                 }
-                essentials.json_write(json_obj_response, subdomain_json)
+                essentials.json_write(json_obj_response, name_save_file)
             continue
         
         if status:
@@ -53,10 +56,13 @@ def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=10, SSL
                     headers_lowercase = {key.lower(): value.lower() for key, value in r.headers.items()}
                     headers_metadata = {
                         'url': r.url,
-                        'server': headers_lowercase.get('server', 'Unknown'),
+                        'location': headers_lowercase.get('location', 'Unknown'),
+                        'x-frame-options': headers_lowercase.get('x-frame-options', 'Unknown'), # previne clickjacking, se em falta o site e vulneravel
+                        'server': headers_lowercase.get('server', 'Unknown'), # servidor
                         'content-encoding': headers_lowercase.get('content-encoding', 'Unknown'),
                         'content-type': headers_lowercase.get('content-type', 'Unknown'),
                         'cache-control': headers_lowercase.get('cache-control', 'Unknown'),
+                        'content-length': headers_lowercase.get('content-length', 'Unknown'),
                     }
                     print(f'{" "*3}[+]{headers_metadata}')
                 
@@ -83,7 +89,7 @@ def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=10, SSL
             'response_headers': headers_metadata if advanced else {},
             'response_certificate': cert_metadata if cert else {},
         }
-        essentials.json_write(json_obj_response, subdomain_json)
+        essentials.json_write(json_obj_response, name_save_file)
 
 
 # Exemplo de uso
