@@ -1,9 +1,11 @@
-from datetime import datetime as dt
+import asyncio
+
 import requests
+from datetime import datetime as dt
 
 import useragent # gera headers
 
-def request(url, timeout, SSL, proxies=None, headers=None, ua_status=False, redirect=False, try_requests=1):
+async def request(url, timeout, SSL, proxies=None, headers=None, ua_status=False, redirect=False, try_requests=1):
     while try_requests > 0:
         if ua_status:
             ua = useragent
@@ -33,7 +35,7 @@ def request(url, timeout, SSL, proxies=None, headers=None, ua_status=False, redi
         try_requests -= 1
 
 
-def get_headers_metadata(response_headers):
+async def get_headers_metadata(response_headers):
     if 'CaseInsensitiveDict' in str(type(response_headers)):
         headers_lowercase = {key.lower(): value.lower() for key, value in response_headers.items()}
         headers_metadata = {
@@ -58,7 +60,6 @@ def get_headers_metadata(response_headers):
         return True, headers_metadata
     else:
         return False, 'dados invalidos'
-
 
 def time_now():
     return dt.now().strftime('%d/%m/%Y %H:%M:%S') # hora atual
