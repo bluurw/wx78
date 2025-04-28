@@ -1,28 +1,39 @@
+import asyncio
+import aiofiles
+
 import json
 
-def fileReader(file):
+# le wordlists
+# file -> caminho do arquivo
+async def fileReader(file):
     try:
-        with open(f'{file}', 'r') as f:
-            lines = f.readlines()
+        async with aiofiles.open(f'{file}', 'r') as f:
+            lines = await f.readlines()
             return lines
     except FileNotFoundError:
         return False
     
-# Json para geracao de logs
-def json_write(log, file='log.json'):
+# escreve o log
+# log -> param em formato a ser escrito
+# file -> caminho do arquivo
+async def json_write(log, file='log.json'):
+    await asyncio.sleep(0.1)  # Pausa entre as chamadas
     try:
-        with open(file, "r", encoding="utf-8") as f:
-            json_load = json.load(f)
-        if isinstance(json_load, list): # verifica se os dados passados sao listas
+        async with aiofiles.open(file, 'r', encoding='utf-8') as f:
+            content = await f.read()  # le o conteudo como texto
+            json_load = json.loads(content) if content else []  # converte para json
+        if isinstance(json_load, list): # se json for lista
             json_load.append(log)
         else:
-            json_load = [json_load, log]
-        with open(file, 'w', encoding='utf-8') as f: # sobrescreve arquivo
-            json.dump(json_load, f, indent=4, ensure_ascii=False)
-        return True, 'Sucesso ao escrever arquivo'    
-    except FileNotFoundError:
-        with open(file, "w", encoding="utf-8") as f:
-            json.dump([log], f, indent=4, ensure_ascii=False)
+            json_load = [json_load, log] # transforma em lista
+        async with aiofiles.open(file, 'w', encoding='utf-8') as f:
+            await f.write(json.dumps(json_load, indent=4, ensure_ascii=False))
+
+        return True, 'Sucesso ao escrever arquivo'
+    except FileNotFoundError: # se o arquivo ainda nao existe
+        async with aiofiles.open(file, 'w', encoding='utf-8') as f:
+            await f.write(json.dumps([log], indent=4, ensure_ascii=False))
+
         return True, 'Sucesso ao escrever arquivo'
     except Exception as e:
-        return False, f'Erro ao escrever arquivo {e}'
+        return False, f'Erro ao escrever arquivo: {e}'
