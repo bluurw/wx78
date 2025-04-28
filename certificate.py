@@ -1,3 +1,5 @@
+import asyncio
+
 import ssl
 import socket
 from datetime import datetime as dt
@@ -7,7 +9,7 @@ from cryptography.hazmat.backends import default_backend
 import functions
 
 # requisita o certificado da pagina
-def get_ssl_info(hostname, port=443):
+async def get_ssl_info(hostname, port=443):
     try:
         context = ssl.create_default_context()
         with socket.create_connection((hostname, port)) as sock:
@@ -27,7 +29,7 @@ def get_ssl_info(hostname, port=443):
         return False, f'Erro ao obter o certificado: {e}'
 
 # apresenta de maneira legivel o certificado
-def certificate(hostname):
+async def certificate(hostname):
     status, certificate = get_ssl_info(hostname)
     if isinstance(certificate, dict): # verifica se realmente e um dict
         print('Informações do certificado:')
@@ -40,8 +42,8 @@ def certificate(hostname):
 # certificate('example.com')
 
 # valida a integridade do certificado
-def check_revoked(serial):
-    status, r = functions.request(
+async def check_revoked(serial):
+    status, r = await functions.request(
         'http://crl3.digicert.com/DigiCertGlobalG3TLSECCSHA3842020CA1-2.crl', # bd certificados
         timeout = None,
         SSL = False,
@@ -58,15 +60,15 @@ def check_revoked(serial):
         return False, f'Erro ao acessar a CRL: {response.status_code}'
 
 # testa possiveis vulnerabilidades
-def certificate_vulnerability(hostname):
+async def certificate_vulnerability(hostname):
     vulnerabilities_certificate = {}
 
-    status, certificate = get_ssl_info(hostname)
+    status, certificate = await get_ssl_info(hostname)
     
     if status:
         # Testa confiabilidade do certificado
         test_url = f'https://{hostname}:443'
-        status, r = functions.request(test_url, timeout=10, SSL=True) # faz a validacao do cerificado
+        status, r = await functions.request(test_url, timeout=10, SSL=True) # faz a validacao do cerificado
         # se retornar True, nao tem vulnerabilidade
         vulnerabilities_certificate['trusted_certificate'] = True if status else False
 
@@ -77,7 +79,7 @@ def certificate_vulnerability(hostname):
         vulnerabilities_certificate['expired_certificate'] = (True, str(date_object)) if current_time > date_object else (False, str(date_object))
 
         # Testa a integridade do certificado
-        status, check_integrity = check_revoked(certificate['serialNumber'])
+        status, check_integrity = await check_revoked(certificate['serialNumber'])
         if status:
             if 'válido' in check_integrity:
                 vulnerabilities_certificate['revoked'] = False
