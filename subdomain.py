@@ -60,11 +60,11 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
                     print(f'[+][{functions.time_now()}][{r.status_code}] {r.url}')
 
                     if advanced:
-                        print(f'{" "*3}[+]{r.headers}')
+                        print(f'{" "*3}[*]{r.headers}')
                     
                     if cert:
                         cert_metadata = await certificate.certificate_vulnerability(f'{payload}.{url}') # aguarda o retorno do cert
-                        print(f'{" "*3}[+]{cert_metadata}')
+                        print(f'{" "*3}[*]{cert_metadata}')
             
             else:
                 if 'NameResolutionError' in str(r): # filtra erros de dns, como impossibilidade na resolucao
@@ -80,7 +80,7 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
                 'url': test_url,
                 'background': None,
                 'details': None,
-                'status_code': r.status_code if status else 404,
+                'status_code': r.status_code if status else None,
                 'error': False if status else True,
                 'error_details': None if status else r,
                 'date_time': functions.time_now(),
@@ -96,7 +96,7 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
 
 # Exemplo de uso
 async def main():
-    await subdomain('sodexo.com', 'wordlists/subdomain/services.txt', filter_status_code=[], 
+    await subdomain('sodexo.com', 'wordlists/subdomain/wordlist.txt', filter_status_code=[], 
                     ua_status=True, timeout=10, advanced=True, cert=True)
 
 asyncio.run(main())
