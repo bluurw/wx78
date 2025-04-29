@@ -3,7 +3,7 @@ import asyncio
 import requests
 from datetime import datetime as dt
 
-import useragent # gera headers
+import useragent
 
 async def request(url, timeout, SSL, proxies=None, headers=None, ua_status=False, redirect=False, try_requests=1):
     while try_requests > 0:
@@ -19,10 +19,7 @@ async def request(url, timeout, SSL, proxies=None, headers=None, ua_status=False
                 allow_redirects=redirect,
                 proxies=proxies,
             )
-            if r.status_code == 200:
-                return True, r
-            else:
-                return True, r
+            return True, r
         
         except requests.exceptions.Timeout:
             return False, f'Tempo limite de requisição atingido: {url} t={timeout}s'
@@ -60,6 +57,11 @@ async def get_headers_metadata(response_headers):
         return True, headers_metadata
     else:
         return False, 'dados invalidos'
+
+# fazer um leitor de html para coletar dados sobre a tecnologia usada no site
+
+# criar um sistema que verifica possiveis vulnerabilidades no header
+# passa parametros e analisa
 
 def time_now():
     return dt.now().strftime('%d/%m/%Y %H:%M:%S') # hora atual
