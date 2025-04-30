@@ -4,7 +4,7 @@ import functions
 import essentials
 import certificate
 
-async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=10, SSL=True, proxies=None, interval=0, advanced=False):
+async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False):
     
     # sistema que verifica informacoes da tecnologia usada
     # resolver problema de escrita no json
@@ -21,10 +21,13 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
     # requisicao assincrona
     async def subdomain_async(payloads):
         # VARIAVEIS
-        headers_metadata = {}
-        cert_metadata = {}
+        headers_metadata = {} # Metadados do cabecalho
+        cert_metadata = {} # Metadados do certificado
         background = [] # Deve armazenar a tecnologia que esta sendo usada
         details = [] # Deve armazenar informacoes adicionais
+        ip = []
+        html_sample = "" # Amostra do html
+        redirect_history = [] # Historico de redirecionamento 
 
         for payload in payloads:
 
@@ -35,7 +38,7 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
             
             try:
                 status, r = functions.request(test_url, ua_status=ua_status, timeout=timeout, 
-                                                    SSL=SSL, proxies=proxies) # aguarda a requisicao
+                                                    SSL=SSL, redirect=False, proxies=proxies) # aguarda a requisicao
             except Exception as err:
                 if 'LocationParseError' in str(err):
                     if len(filter_status_code) == 0 or 404 in filter_status_code:
@@ -47,6 +50,7 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
                         'hostname': url,
                         'payload': payload,
                         'url': test_url,
+                        'html_sample': None,
                         'background': None,
                         'details': None,
                         'status_code': 404,
@@ -65,12 +69,15 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
                     print(f'[+][{functions.time_now()}][{r.status_code}] {r.url}')
 
                     if advanced:
-                        print(f'{" "*3}[*]{r.headers}')
+                        #print(f'{" "*3}[*]{r.headers}')
+                        html_sample = r.text if r.status_code in [301, 302, 307] else r.text[:500]
+                        redirect_history = [resp for resp in r.history if resp.status_code in [301, 302, 307]]
 
                         cert_metadata = await certificate.certificate_vulnerability(f'{payload}.{url}') # aguarda o retorno do cert
-                        print(f'{" "*3}[*]{cert_metadata}')
+                        #print(f'{" "*3}[*]{cert_metadata}')
 
-                        details = functions.get_ip_host(f'{payload}.{url}')
+                        ip = functions.get_ip_host(f'{payload}.{url}')
+            
             else:
                 if 'NameResolutionError' in str(r): # filtra erros de dns, como impossibilidade na resolucao
                     if len(filter_status_code) == 0 or 404 in filter_status_code:
@@ -84,9 +91,12 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
                 'hostname': url,
                 'payload': payload,
                 'url': test_url,
+                'ip': ip[1] if len(ip) > 0 and ip[0] == True else None,
+                'html_sample': html_sample,
+                'redirect_history': redirect_history,
                 'response_time': r.elapsed.total_seconds() if status else None,
-                'background': None,
-                'details': details[1] if status and details[0] else None,
+                'background': None, # Este campo e realmente necessario?
+                'details': None, # Este campo e realmente necessario?
                 'status_code': r.status_code if status else None,
                 'error': False if status else True,
                 'error_details': None if status else r,
