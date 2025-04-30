@@ -21,7 +21,6 @@ def request(url, timeout, SSL, proxies=None, headers=None, ua_status=False, redi
             headers_ = {'User-Agent': ua.get_useragent_experimental()}
         else:
             headers_ = headers
-        start_time = dt.now()
         try:
             r = requests.get(
                 url,
@@ -31,8 +30,6 @@ def request(url, timeout, SSL, proxies=None, headers=None, ua_status=False, redi
                 allow_redirects=redirect,
                 proxies=proxies,
             )
-            response_time = dt.now() - start_time
-            print(f"RP: {response_time}")
             return True, r
         except requests.exceptions.Timeout:
             error_msg = f'Tempo limite de requisição atingido: {url} t={timeout}s'
