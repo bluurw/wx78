@@ -43,7 +43,7 @@ async def certificate(hostname):
 
 # valida a integridade do certificado
 async def check_revoked(serial):
-    status, r = await functions.request(
+    status, r = functions.request(
         'http://crl3.digicert.com/DigiCertGlobalG3TLSECCSHA3842020CA1-2.crl', # bd certificados
         timeout = None,
         SSL = False,
@@ -68,7 +68,7 @@ async def certificate_vulnerability(hostname):
     if status:
         # Testa confiabilidade do certificado
         test_url = f'https://{hostname}:443'
-        status, r = await functions.request(test_url, timeout=10, SSL=True) # faz a validacao do cerificado
+        status, r = functions.request(test_url, timeout=10, SSL=True) # faz a validacao do cerificado
         # se retornar True, nao tem vulnerabilidade
         vulnerabilities_certificate['trusted_certificate'] = True if status else False
 
