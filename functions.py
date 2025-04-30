@@ -1,15 +1,20 @@
 import asyncio
 
 import requests
+import time
 from datetime import datetime as dt
 
 import useragent
 
-async def request(url, timeout, SSL, proxies=None, headers=None, ua_status=False, redirect=False, try_requests=1):
+from datetime import datetime as dt
+import requests
+
+def request(url, timeout, SSL, proxies=None, headers=None, ua_status=False, redirect=False, try_requests=1):
     while try_requests > 0:
         if ua_status:
             ua = useragent
-            headers = {'User-Agent':ua.get_useragent_experimental()}
+            headers = {'User-Agent': ua.get_useragent_experimental()}
+        start_time = dt.now()
         try:
             r = requests.get(
                 url,
@@ -19,18 +24,19 @@ async def request(url, timeout, SSL, proxies=None, headers=None, ua_status=False
                 allow_redirects=redirect,
                 proxies=proxies,
             )
+            response_time = dt.now() - start_time
+            print(f"RP: {response_time}")
             return True, r
-        
         except requests.exceptions.Timeout:
-            return False, f'Tempo limite de requisição atingido: {url} t={timeout}s'
+            error_msg = f'Tempo limite de requisição atingido: {url} t={timeout}s'
         except requests.exceptions.ConnectionError as e:
-            return False, f'Erro de conexão: {url} - {e}'
+            error_msg = f'Erro de conexão: {url} - {e}'
         except requests.exceptions.RequestException as e:
-            return False, f'Erro de requisição: {url} - {e}'
+            error_msg = f'Erro de requisição: {url} - {e}'
         except requests.exceptions.SSLError as e:
-            return False, f'Erro de certificado: {url} - {e}'
+            error_msg = f'Erro de certificado: {url} - {e}'
         try_requests -= 1
-
+    return False, error_msg
 
 async def get_headers_metadata(response_headers):
     if 'CaseInsensitiveDict' in str(type(response_headers)):
@@ -65,3 +71,38 @@ async def get_headers_metadata(response_headers):
 
 def time_now():
     return dt.now().strftime('%d/%m/%Y %H:%M:%S') # hora atual
+
+
+
+
+
+
+# Descontinuada
+async def request_(url, timeout, SSL, proxies=None, headers=None, ua_status=False, redirect=False, try_requests=1):
+    currently_time = dt.now()
+    while try_requests > 0:
+        if ua_status:
+            ua = useragent
+            headers = {'User-Agent':ua.get_useragent_experimental()}
+        try:
+            r = requests.get(
+                url,
+                headers=headers,
+                timeout=timeout,
+                verify=SSL,
+                allow_redirects=redirect,
+                proxies=proxies,
+            )
+            response_time = currently_time - dt.now()
+            print(f"RP: {response_time}")
+            return True, r
+        
+        except requests.exceptions.Timeout:
+            return False, f'Tempo limite de requisição atingido: {url} t={timeout}s'
+        except requests.exceptions.ConnectionError as e:
+            return False, f'Erro de conexão: {url} - {e}'
+        except requests.exceptions.RequestException as e:
+            return False, f'Erro de requisição: {url} - {e}'
+        except requests.exceptions.SSLError as e:
+            return False, f'Erro de certificado: {url} - {e}'
+        try_requests -= 1
