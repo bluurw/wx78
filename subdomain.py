@@ -23,8 +23,6 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
         # VARIAVEIS
         headers_metadata = {} # Metadados do cabecalho
         cert_metadata = {} # Metadados do certificado
-        background = [] # Deve armazenar a tecnologia que esta sendo usada
-        details = [] # Deve armazenar informacoes adicionais
         ip = []
         html_sample = "" # Amostra do html
         redirect_history = [] # Historico de redirecionamento 
@@ -95,8 +93,6 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
                 'html_sample': html_sample,
                 'redirect_history': redirect_history,
                 'response_time': r.elapsed.total_seconds() if status else None,
-                'background': None, # Este campo e realmente necessario?
-                'details': None, # Este campo e realmente necessario?
                 'status_code': r.status_code if status else None,
                 'error': False if status else True,
                 'error_details': None if status else r,
