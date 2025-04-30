@@ -6,19 +6,26 @@ from datetime import datetime as dt
 
 import useragent
 
-from datetime import datetime as dt
-import requests
-
+# timeout -> tempo maximo aguardando resposta
+# ssl -> se https
+# ua_status -> se true, usa headers aleatorios, se houve algo em header, header sera ignorado.
+# redirect -> permite o redirecionamento
+# try_requests -> numero maximo de tentativas
 def request(url, timeout, SSL, proxies=None, headers=None, ua_status=False, redirect=False, try_requests=1):
     while try_requests > 0:
         if ua_status:
             ua = useragent
-            headers = {'User-Agent': ua.get_useragent_experimental()}
+            headers_ = {'User-Agent': ua.get_useragent_experimental()}
+        elif not ua_status and not headers:
+            ua = useragent
+            headers_ = {'User-Agent': ua.get_useragent_experimental()}
+        else:
+            headers_ = headers
         start_time = dt.now()
         try:
             r = requests.get(
                 url,
-                headers=headers,
+                headers=headers_,
                 timeout=timeout,
                 verify=SSL,
                 allow_redirects=redirect,
