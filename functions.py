@@ -73,6 +73,15 @@ async def get_headers_metadata(response_headers):
 # criar um sistema que verifica possiveis vulnerabilidades no header
 # passa parametros e analisa
 
+def get_ip_host(host):
+    try:
+        full_info = socket.gethostbyname_ex(host)
+        return True, full_info[2]
+    except socket.gaierror:
+        return False, 'Erro ao obter ip'
+    except Exception as e:
+        return False, f'Qualquer erro foi retornado {e}'
+
 def time_now():
     return dt.now().strftime('%d/%m/%Y %H:%M:%S') # hora atual
 
