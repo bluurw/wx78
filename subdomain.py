@@ -29,7 +29,7 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
             await asyncio.sleep(interval) # intervalo entre requisicoes
             
             try:
-                status, r = await functions.request(test_url, ua_status=ua_status, timeout=timeout, 
+                status, r = functions.request(test_url, ua_status=ua_status, timeout=timeout, 
                                                     SSL=SSL, proxies=proxies) # aguarda a requisicao
             except Exception as err:
                 if 'LocationParseError' in str(err):
