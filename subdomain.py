@@ -4,13 +4,10 @@ import functions
 import essentials
 import certificate
 
-#modificado [cert: removido; name_save_file & scheme: constantes; header, cert, background, details: Variavel; retorno do ip do host
-
 async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=10, SSL=True, proxies=None, interval=0, advanced=False):
     
     # sistema que verifica informacoes da tecnologia usada
     # resolver problema de escrita no json
-    # retornar o ip
     
     # CONSTANTES
     name_save_file = 'subdomain.json'
