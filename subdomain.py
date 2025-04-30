@@ -4,22 +4,30 @@ import functions
 import essentials
 import certificate
 
-async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=10, SSL=True, proxies=None, interval=0, advanced=False, cert=False):
+#modificado [cert: removido; name_save_file & scheme: constantes; header, cert, background, details: Variavel; retorno do ip do host
+
+async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=10, SSL=True, proxies=None, interval=0, advanced=False):
     
     # sistema que verifica informacoes da tecnologia usada
+    # resolver problema de escrita no json
+    # retornar o ip
+    
+    # CONSTANTES
+    name_save_file = 'subdomain.json'
+    scheme = 'https' if SSL else 'http' # define se e http ou https
 
     payloads = await essentials.fileReader(file) # aguardar a leitura
     if not payloads:
         print(f'[-] Nao encontrado: {file}')
         return False, f'[-] Nao encontrado: {file}'
-    
+
     # requisicao assincrona
     async def subdomain_async(payloads):
-        
-        name_save_file = 'subdomain.json'
+        # VARIAVEIS
         headers_metadata = {}
         cert_metadata = {}
-        scheme = 'https' if SSL else 'http' # define se e http ou https
+        background = [] # Deve armazenar a tecnologia que esta sendo usada
+        details = [] # Deve armazenar informacoes adicionais
 
         for payload in payloads:
 
@@ -61,11 +69,11 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
 
                     if advanced:
                         print(f'{" "*3}[*]{r.headers}')
-                    
-                    if cert:
+
                         cert_metadata = await certificate.certificate_vulnerability(f'{payload}.{url}') # aguarda o retorno do cert
                         print(f'{" "*3}[*]{cert_metadata}')
-            
+
+                        details = functions.get_ip_host(f'{payload}.{url}')
             else:
                 if 'NameResolutionError' in str(r): # filtra erros de dns, como impossibilidade na resolucao
                     if len(filter_status_code) == 0 or 404 in filter_status_code:
@@ -81,13 +89,13 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
                 'url': test_url,
                 'response_time': r.elapsed.total_seconds() if status else None,
                 'background': None,
-                'details': None,
+                'details': details[1] if status and details[0] else None,
                 'status_code': r.status_code if status else None,
                 'error': False if status else True,
                 'error_details': None if status else r,
                 'date_time': functions.time_now(),
                 'response_headers': r.headers if (advanced and status) else {}, # headers_metadata
-                'response_certificate': cert_metadata if cert else {},
+                'response_certificate': cert_metadata if len(cert_metadata) > 0 else {},
             }
             print(json_obj_response)
             await essentials.json_write(json_obj_response, name_save_file)
@@ -100,7 +108,7 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
 # Exemplo de uso
 async def main():
     await subdomain('sodexo.com', 'wordlists/subdomain/wordlist.txt', filter_status_code=[], 
-                    ua_status=True, timeout=10, advanced=True, cert=True)
+                    ua_status=True, timeout=10, advanced=True)
 
 asyncio.run(main())
 
