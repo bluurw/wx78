@@ -73,11 +73,13 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
                 else:
                     if len(filter_status_code) == 0 or 404 in filter_status_code:
                         print(f'[-][{functions.time_now()}][404] {r}')
-                
+            
+            # transformar em objeto
             json_obj_response = {
                 'hostname': url,
                 'payload': payload,
                 'url': test_url,
+                'response_time': r.elapsed.total_seconds() if status else None,
                 'background': None,
                 'details': None,
                 'status_code': r.status_code if status else None,
@@ -87,6 +89,7 @@ async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=1
                 'response_headers': r.headers if (advanced and status) else {}, # headers_metadata
                 'response_certificate': cert_metadata if cert else {},
             }
+            print(json_obj_response)
             await essentials.json_write(json_obj_response, name_save_file)
     
     await subdomain_async(payloads) # executa todo o loop e aguarda
