@@ -127,8 +127,8 @@ async def sqli(url, file, ua_status=False, timeout=10, SSL=True, proxies=None, i
 
             await asyncio.sleep(interval) # intervalo entre requisicoes
             
+            status, r = functions.request(test_url, timeout=timeout, SSL=SSL, proxies=proxies) # requisicao
             print(f'[-][{functions.time_now()}] Tentando: {r.url}')
-            status, r = await functions.request(test_url, timeout=timeout, SSL=SSL, proxies=proxies) # requisicao
             # print(f'{" "*3}[*] {r.headers}')
             if status:
                 for k, v in error_messages.items(): # itera sobre o dicionario
@@ -186,6 +186,3 @@ async def main():
     )
 
 asyncio.run(main())
-
-# DORK
-# ociexecute "ora 01756"
