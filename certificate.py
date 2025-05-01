@@ -6,7 +6,7 @@ from datetime import datetime as dt
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
-import functions
+import commons
 
 # requisita o certificado da pagina
 async def get_ssl_info(hostname, port=443):
@@ -43,7 +43,7 @@ async def certificate(hostname):
 
 # valida a integridade do certificado
 async def check_revoked(serial):
-    status, r = functions.request(
+    status, r = commons.request(
         'http://crl3.digicert.com/DigiCertGlobalG3TLSECCSHA3842020CA1-2.crl', # bd certificados
         timeout = None,
         SSL = False,
@@ -68,7 +68,7 @@ async def certificate_vulnerability(hostname):
     if status:
         # Testa confiabilidade do certificado
         test_url = f'https://{hostname}:443'
-        status, r = functions.request(test_url, timeout=10, SSL=True) # faz a validacao do cerificado
+        status, r = commons.request(test_url, timeout=10, SSL=True) # faz a validacao do cerificado
         # se retornar True, nao tem vulnerabilidade
         vulnerabilities_certificate['trusted_certificate'] = True if status else False
 
