@@ -1,122 +1,70 @@
 import asyncio
 
+import commons
 import functions
-import essentials
+import jsonlog
 import certificate
 
-async def subdomain(url, file, filter_status_code=[], ua_status=False, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False):
-    
-    # sistema que verifica informacoes da tecnologia usada
-    # resolver problema de escrita no json
-    
+async def subdomain(origin, file, filter_status_code=[], ua_status=False, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False):
+
     # CONSTANTES
-    name_save_file = 'subdomain.json'
-    scheme = 'https' if SSL else 'http' # define se e http ou https
+    name_save_file = 'subdomain_teste.json'
+    scheme = 'https' if SSL else 'http'
 
-    payloads = await essentials.fileReader(file) # aguardar a leitura
-    if not payloads:
-        print(f'[-] Nao encontrado: {file}')
-        return False, f'[-] Nao encontrado: {file}'
-
+    status_payload, payloads = await commons.fileReader(file)
+    if not status_payload:
+        print(f'[-][{commons.time_now()}] {payloads}')
+        return False, payloads
+    
     # requisicao assincrona
     async def subdomain_async(payloads):
         # VARIAVEIS
-        headers_metadata = {} # Metadados do cabecalho
-        cert_metadata = {} # Metadados do certificado
-        ip = []
-        html_sample = "" # Amostra do html
-        redirect_history = [] # Historico de redirecionamento 
+        cert_metadata = {}
+        html_sample = ''
+        ip = ''
 
         for payload in payloads:
+            url = [f'{scheme}://', payload.strip(), '.', origin]
 
-            payload = payload.strip()
-            test_url = f'{scheme}://{payload}.{url}'
-            
-            await asyncio.sleep(interval) # intervalo entre requisicoes
-            
-            try:
-                status, r = functions.request(test_url, ua_status=ua_status, timeout=timeout, 
-                                                    SSL=SSL, redirect=False, proxies=proxies) # aguarda a requisicao
-            except Exception as err:
-                if 'LocationParseError' in str(err):
-                    if len(filter_status_code) == 0 or 404 in filter_status_code:
-                        print(f'[-]{functions.time_now()}{404}{test_url} -> {err}') # filtra erros de parse ex: vazio ou muito longo
-                    else:
-                        print(f'[-]{functions.time_now()}{404}{test_url} -> {err}')
-                    # colocar o log aqui fara com que, independentemente do status filtrado, ele seja retornado
-                    json_obj_response = {
-                        'hostname': url,
-                        'payload': payload,
-                        'url': test_url,
-                        'html_sample': None,
-                        'background': None,
-                        'details': None,
-                        'status_code': 404,
-                        'error': True,
-                        'error_details': err,
-                        'date_time': functions.time_now(),
-                        'response_headers': {},
-                        'response_certificate':{},
-                    }
-                    await essentials.json_write(json_obj_response, name_save_file) # aguarda finalizar a escrita
-                continue
+            await asyncio.sleep(interval)
+
+            #print(f'[+][{commons.time_now()}] Testando: {"".join(url)}')
+            status, r = commons.request("".join(url), ua_status=ua_status, timeout=timeout,
+                                        SSL=SSL, redirect=False, proxies=proxies)
             
             if status:
-                if len(filter_status_code) == 0 or (len(filter_status_code) > 0 and r.status_code in filter_status_code):
-                    # headers_metadata = functions.get_headers_metadata(r.headers)
-                    print(f'[+][{functions.time_now()}][{r.status_code}] {r.url}')
-
-                    if advanced:
-                        #print(f'{" "*3}[*]{r.headers}')
+                if len(filter_status_code) == 0 or (len(filter_status_code) != 0 and r.status_code in filter_status_code):
+                    #print(f'{" "*3}[>][{commons.time_now()}][{r.status_code}] {"".join(url)}')
+                    None
+                
+                #$ Amostra de codigo e historico de redirect sera coletada somente neste caso
+                if advanced:
+                    cert_metadata = await certificate.certificate_vulnerability("".join(url[1:])) # verifica se ha vulnerabilidade no certificado
+                    if redirect:
                         html_sample = r.text if r.status_code in [301, 302, 307] else r.text[:500]
-                        redirect_history = [resp for resp in r.history if resp.status_code in [301, 302, 307]]
-
-                        cert_metadata = await certificate.certificate_vulnerability(f'{payload}.{url}') # aguarda o retorno do cert
-                        #print(f'{" "*3}[*]{cert_metadata}')
-
-                        ip = functions.get_ip_host(f'{payload}.{url}')
+                        redirect_history = [resp for resp in r.history if resp.status_code in [301, 302, 307]]    
+                
+                # ip sera coletado por padrao
+                status_ip, ip = functions.get_ip_host("".join(url[1:]))
             
-            else:
-                if 'NameResolutionError' in str(r): # filtra erros de dns, como impossibilidade na resolucao
-                    if len(filter_status_code) == 0 or 404 in filter_status_code:
-                        print(f'[-][{functions.time_now()}][404] {r}')
-                else:
-                    if len(filter_status_code) == 0 or 404 in filter_status_code:
-                        print(f'[-][{functions.time_now()}][404] {r}')
-            
-            # transformar em objeto
-            json_obj_response = {
-                'hostname': url,
-                'payload': payload,
-                'url': test_url,
-                'ip': ip[1] if len(ip) > 0 and ip[0] == True else None,
-                'html_sample': html_sample,
-                'redirect_history': redirect_history,
-                'response_time': r.elapsed.total_seconds() if status else None,
-                'status_code': r.status_code if status else None,
-                'error': False if status else True,
-                'error_details': None if status else r,
-                'date_time': functions.time_now(),
-                'response_headers': r.headers if (advanced and status) else {}, # headers_metadata
-                'response_certificate': cert_metadata if len(cert_metadata) > 0 else {},
-            }
-            print(json_obj_response)
-            await essentials.json_write(json_obj_response, name_save_file)
+            else: 
+                #print(f'{" "*3}[>]{commons.time_now()} {"".join(url)}: {r}')
+                None
+               
+                
+            # transforma em json object
+            json_obj_response = jsonlog.ObjectJson.from_data(url, ip, r, cert_metadata, html_sample)
+            write = await jsonlog.AsyncLogger(name_save_file).json_write(json_obj_response)
+            print(write)
+        
+        return True, f'[+] Wordlist concluido: {file} & Gerado arquivo: {name_save_file}'
     
     await subdomain_async(payloads) # executa todo o loop e aguarda
-    
-    return True, f'[+] Wordlist concluido: {file} & Gerado arquivo: {name_save_file}'
 
-
+            
 # Exemplo de uso
 async def main():
     await subdomain('sodexo.com', 'wordlists/subdomain/wordlist.txt', filter_status_code=[], 
                     ua_status=True, timeout=10, advanced=True)
 
 asyncio.run(main())
-
-# ERROS:
-'''
-raise LocationParseError(f"'{host}', label empty or too long") from None
-urllib3.exceptions.LocationParseError: Failed to parse: 'm..sodexo.com', label empty or too long
-'''
