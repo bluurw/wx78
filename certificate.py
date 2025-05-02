@@ -57,7 +57,7 @@ async def check_revoked(serial):
         else:
             return True, 'certificado válido'
     else:
-        return False, f'Erro ao acessar a CRL: {response.status_code}'
+        return False, f'Erro ao acessar a CRL: {r}'
 
 # testa possiveis vulnerabilidades
 async def certificate_vulnerability(hostname):
