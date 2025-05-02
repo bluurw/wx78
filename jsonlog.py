@@ -10,24 +10,25 @@ import commons
 @dataclass
 class ObjectJson:
     domain: str
-    ip: Optional[str]
+    ip: str
     payload: dict
     url: str
-    status_code: Optional[int]
-    response_time: Optional[float]
+    status_code: int
+    response_time: float
     error: bool
-    error_details: Optional[str]
+    error_details: str
     date_time: str
+    detected_techs: List[str]
     redirect_history: List[str]
-    response_certificate: dict
-    response_headers: dict
-    html_sample: str
+    response_certificate: Optional[dict]
+    response_headers: Optional[dict]
+    html_sample: Optional[str]
 
     def to_dict(self):
         return asdict(self)
     
     @staticmethod
-    def from_data(url, ip, r, cert_metadata={}, html_sample=None):
+    def from_data(url, ip, r, detected_techs=[], cert_metadata={}, html_sample=None):
         status = True if 'requests.models.Response' in str(type(r)) else False
         
         return ObjectJson(
@@ -40,6 +41,7 @@ class ObjectJson:
             error=status,
             error_details=None if status else r,
             date_time=commons.time_now(),
+            detected_techs=detected_techs,
             redirect_history=[resp for resp in r.history if resp.status_code in [301, 302, 307]] if status else [],
             response_certificate=cert_metadata,
             response_headers=dict(r.headers) if status else {},
