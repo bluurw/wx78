@@ -18,12 +18,11 @@ async def subdomain(origin, file, filter_status_code=[], ua_status=False, timeou
     
     # requisicao assincrona
     async def subdomain_async(payloads):
-        # VARIAVEIS
-        cert_metadata = {}
-        html_sample = ''
-        ip = ''
-
         for payload in payloads:
+            # VARIAVEIS
+            cert_metadata = {}
+            html_sample = ''
+            ip = ''
             url = [f'{scheme}://', payload.strip(), '.', origin]
 
             await asyncio.sleep(interval)
