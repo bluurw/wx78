@@ -28,35 +28,33 @@ async def subdomain(origin, file, filter_status_code=[], ua_status=False, timeou
 
             await asyncio.sleep(interval)
 
-            #print(f'[+][{commons.time_now()}] Testando: {"".join(url)}')
+            print(f'[+][{commons.time_now()}] Testando: {"".join(url)}')
             status, r = commons.request("".join(url), ua_status=ua_status, timeout=timeout,
                                         SSL=SSL, redirect=False, proxies=proxies)
             
             if status:
                 if len(filter_status_code) == 0 or (len(filter_status_code) != 0 and r.status_code in filter_status_code):
-                    #print(f'{" "*3}[>][{commons.time_now()}][{r.status_code}] {"".join(url)}')
-                    None
+                    print(f'{" "*3}[>][{commons.time_now()}][{r.status_code}] {"".join(url)}')
                 
-                #$ Amostra de codigo e historico de redirect sera coletada somente neste caso
+                #$ Amostra de codigo e historico de redirect sera coletada somente neste caso (removido)
                 if advanced:
                     cert_metadata = await certificate.certificate_vulnerability("".join(url[1:])) # verifica se ha vulnerabilidade no certificado
-                    if redirect:
-                        html_sample = r.text if r.status_code in [301, 302, 307] else r.text[:500]
-                        redirect_history = [resp for resp in r.history if resp.status_code in [301, 302, 307]]    
+                    #if sample:
+                    html_sample = r.text if r.status_code in [301, 302, 307] else r.text[:500]
+                    redirect_history = [resp for resp in r.history if resp.status_code in [301, 302, 307]]    
                 
                 # ip sera coletado por padrao
                 status_ip, ip = functions.get_ip_host("".join(url[1:]))
             
-            else: 
-                #print(f'{" "*3}[>]{commons.time_now()} {"".join(url)}: {r}')
-                None
+            else:
+                if len(filter_status_code) == 0 or (len(filter_status_code) != 0 and 404 in filter_status_code):
+                    print(f'{" "*3}[>][{commons.time_now()}][404] {"".join(url)}: {r}')
                
                 
             # transforma em json object
             json_obj_response = jsonlog.ObjectJson.from_data(url, ip, r, cert_metadata, html_sample)
             write = await jsonlog.AsyncLogger(name_save_file).json_write(json_obj_response)
-            print(write)
-        
+
         return True, f'[+] Wordlist concluido: {file} & Gerado arquivo: {name_save_file}'
     
     await subdomain_async(payloads) # executa todo o loop e aguarda
