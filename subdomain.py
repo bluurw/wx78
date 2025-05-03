@@ -31,7 +31,7 @@ async def subdomain(origin, file, filter_status_code=[], ua_status=False, timeou
 
             print(f'[+][{commons.time_now()}] Testando: {url}')
             status, r = commons.request(url, ua_status=ua_status, timeout=timeout,
-                                        SSL=SSL, redirect=False, proxies=proxies)
+                                        SSL=SSL, redirect=redirect, proxies=proxies)
             
             if status:
                 if len(filter_status_code) == 0 or (len(filter_status_code) != 0 and r.status_code in filter_status_code):
@@ -63,7 +63,7 @@ async def subdomain(origin, file, filter_status_code=[], ua_status=False, timeou
             
 # Exemplo de uso
 async def main():
-    await subdomain('socasadas.com', 'wordlists/subdomain/wordlist.txt', filter_status_code=[], 
-                    ua_status=True, timeout=10, advanced=True)
+    await subdomain('socasadas.com', 'wordlists/subdomain/wordlist.txt', filter_status_code=[], ua_status=True, 
+                    redirect=False, timeout=10, proxies=None, interval=0, advanced=True)
 
 asyncio.run(main())
