@@ -1,10 +1,9 @@
 import asyncio
 import re
 
+import utils
 import jsonlog
-import functions
 import commons
-
 
 async def sqli_score_system(payload, r):
     score = 5  # Pontuação inicial, pre-validado (max: 20pts)
@@ -149,7 +148,7 @@ async def sqli(origin, file=None, ua_status=False, timeout=10, SSL=True, proxies
                         print(f'{" "*3}[>] Tipo: {k} Msg: {error_msg} url: {url} Score: {score}')
                         
                         if not continue_:
-                            return True, f'[#][{functions.time_now()}][{r.status_code}] Possível vulnerabilidade: {url} -> {payload}'     
+                            return True, f'[#][{utils.time_now()}][{r.status_code}] Possível vulnerabilidade: {url} -> {payload}'     
             else:
                 print(f'{" "*3}[>][{commons.time_now()}] Falha ao requisitar: {r}')
             
