@@ -28,14 +28,14 @@ class ObjectJson:
         return asdict(self)
     
     @staticmethod
-    def from_data(url, ip, r, detected_techs=[], cert_metadata={}, html_sample=None):
+    def from_data(domain, payload, url, ip, r, detected_techs=[], cert_metadata={}, html_sample=None):
         status = True if 'requests.models.Response' in str(type(r)) else False
         
         return ObjectJson(
-            domain="".join(url[1:]),
+            domain=domain,
             ip=ip,
-            payload=url[1],
-            url="".join(url),
+            payload=payload,
+            url=url,
             status_code=r.status_code if status else 404,
             response_time= r.elapsed.total_seconds() if status else None,
             error=status,
