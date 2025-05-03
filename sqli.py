@@ -121,7 +121,7 @@ async def sqli(origin, file=None, ua_status=False, timeout=10, SSL=True, proxies
             # VARIAVEIS
             ip = ''
             score = 0
-            detected_techs = []
+            details = {}
             html_sample = ''
             
             payload = payload.strip()
@@ -138,11 +138,12 @@ async def sqli(origin, file=None, ua_status=False, timeout=10, SSL=True, proxies
                 for k, v in error_messages.items(): # itera sobre o dicionario
                     # if any(error_msg.lower() in r.text.lower() for error_msg in v): 
                     if any(re.search(error_msg.lower(), r.text.lower()) for error_msg in v): # verifica o tipo de erro no retorno
-                        detected_techs.append(k)
+                        details['db type'] = k
                         html_sample = r.text if r.status_code in [301, 302, 307] else r.text[:500]
                         
                         if score_sqli:
                             score = await sqli_score_system(payload, r)
+                            details['SQLi Score'] = score
                         
                         print(f'{" "*3}[>][{commons.time_now()}][{r.status_code}] Possível vulnerabilidade: {url} -> {payload}')
                         print(f'{" "*3}[>] Tipo: {k} Msg: {error_msg} url: {url} Score: {score}')
@@ -153,8 +154,7 @@ async def sqli(origin, file=None, ua_status=False, timeout=10, SSL=True, proxies
                 print(f'{" "*3}[>][{commons.time_now()}] Falha ao requisitar: {r}')
             
             # transforma em json object
-            json_obj_response = jsonlog.ObjectJson.from_data(origin, payload, url, 
-                                                                ip, r, html_sample)
+            json_obj_response = jsonlog.ObjectJson.from_data(origin=origin, payload=payload, url=url, ip=ip, r=r, html_sample=html_sample, details=details)
             write = await jsonlog.AsyncLogger(name_save_file).json_write(json_obj_response)
 
         return True, f'[#] Wordlist concluido: {file} & Gerado arquivo: {name_save_file}'
@@ -174,4 +174,3 @@ async def main():
         return True, f'[#] Execucao finalizada'
 
 asyncio.run(main())
-
