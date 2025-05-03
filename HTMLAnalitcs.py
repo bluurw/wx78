@@ -1,7 +1,5 @@
 import re
 
-import functions
-
 # sondar a pagina catalogando linguagem usada (html, css, js, php) entre outras tecnologias (bancos de dados, etc)
 
 # form
