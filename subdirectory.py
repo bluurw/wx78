@@ -1,8 +1,8 @@
 import asyncio
 
-import commons
-import functions
+import utils
 import jsonlog
+import commons
 import certificate
 import HTMLAnalitcs
 
@@ -51,7 +51,7 @@ async def subdirectory(origin, file, filter_status_code=[], ua_status=False, tim
                     details['paths'] = HTMLAnalitcs.get_all_path(r)
                 
                 # ip sera coletado por padrao
-                status_ip, ip = functions.get_ip_host("".join(url[1:]))
+                status_ip, ip = utils.get_ip_host("".join(url[1:]))
             
             else:
                 if len(filter_status_code) == 0 or (len(filter_status_code) != 0 and 404 in filter_status_code):
