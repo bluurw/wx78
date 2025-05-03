@@ -154,7 +154,7 @@ async def sqli(origin, file=None, ua_status=False, timeout=10, SSL=True, proxies
                 print(f'{" "*3}[>][{commons.time_now()}] Falha ao requisitar: {r}')
             
             # transforma em json object
-            json_obj_response = jsonlog.ObjectJson.from_data(origin=origin, payload=payload, url=url, ip=ip, r=r, html_sample=html_sample, details=details)
+            json_obj_response = jsonlog.ObjectJson.from_data(domain=origin, payload=payload, url=url, ip=ip, r=r, html_sample=html_sample, details=details)
             write = await jsonlog.AsyncLogger(name_save_file).json_write(json_obj_response)
 
         return True, f'[#] Wordlist concluido: {file} & Gerado arquivo: {name_save_file}'
