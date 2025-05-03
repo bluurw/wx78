@@ -18,7 +18,7 @@ class ObjectJson:
     error: bool
     error_details: str
     date_time: str
-    detected_techs: List[str]
+    details: Optional[dict]
     redirect_history: List[str]
     response_certificate: Optional[dict]
     response_headers: Optional[dict]
@@ -28,7 +28,7 @@ class ObjectJson:
         return asdict(self)
     
     @staticmethod
-    def from_data(domain, payload, url, ip, r, detected_techs=[], cert_metadata={}, html_sample=None):
+    def from_data(domain, payload, url, ip, r, details={}, cert_metadata={}, html_sample=None):
         status = True if 'requests.models.Response' in str(type(r)) else False
         
         return ObjectJson(
@@ -41,7 +41,7 @@ class ObjectJson:
             error=status,
             error_details=None if status else r,
             date_time=commons.time_now(),
-            detected_techs=detected_techs,
+            details=details,
             redirect_history=[resp for resp in r.history if resp.status_code in [301, 302, 307]] if status else [],
             response_certificate=cert_metadata,
             response_headers=dict(r.headers) if status else {},
