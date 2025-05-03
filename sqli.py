@@ -148,8 +148,7 @@ async def sqli(origin, file=None, ua_status=False, timeout=10, SSL=True, proxies
                         print(f'{" "*3}[>] Tipo: {k} Msg: {error_msg} url: {url} Score: {score}')
                         
                         if not continue_:
-                            return True, f'[#][{functions.time_now()}][{r.status_code}] Possível vulnerabilidade: {url} -> {payload}'
-                    
+                            return True, f'[#][{functions.time_now()}][{r.status_code}] Possível vulnerabilidade: {url} -> {payload}'     
             else:
                 print(f'{" "*3}[>][{commons.time_now()}] Falha ao requisitar: {r}')
             
