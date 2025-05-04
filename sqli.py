@@ -5,17 +5,53 @@ import utils
 import jsonlog
 import commons
 
-async def sqli_score_system(payload, r):
+# payload -> carga enviada
+# response -> resposta bruta da requisicao 
+async def sqli_score_system(payload, response):
     score = 5  # Pontuação inicial, pre-validado (max: 20pts)
     dbase_types = ['mysql', 'postgresql', 'sqlserver', 'oracle', 'mongodb', 'sqlite', 'redis', 'db2', 'mariadb', 'cockroachdb']
     suspicious = {
-        'response_length': 3 if len(r.text) > 1500 else 2 if len(r.text) < 200 else 0,
-        'response_time': 6 if r.elapsed.total_seconds() > 10 else 4 if r.elapsed.total_seconds() > 5 else 0,
-        'response_code': 3 if r.status_code == 500 else 2 if r.status_code == 403 else 0,
-        'response_header': 3 if "X-Powered-By" in r.headers and any(b in r.headers.get('X-Powered-By', '').lower() for b in dbase_types) else 0,
+        'response_length': 3 if len(response.text) > 1500 else 2 if len(response.text) < 200 else 0,
+        'response_time': 6 if response.elapsed.total_seconds() > 10 else 4 if response.elapsed.total_seconds() > 5 else 0,
+        'response_code': 3 if response.status_code == 500 else 2 if response.status_code == 403 else 0,
+        'response_header': 3 if "X-Powered-By" in response.headers and any(b in response.headers.get('X-Powered-By', '').lower() for b in dbase_types) else 0,
     }
     score += sum(v for v in suspicious.values())
     return score
+
+# response -> resposta bruta da requisicao
+async def sqli_waf_detection(response):
+    score = 0
+    waf_servers = [
+        'cloudflare', 'sucuri', 'akamai', 'imperva', 'incapsula', 'barracuda',
+        'f5 big-ip', 'aws', 'amazon cloudfront', 'fastly', 'edgecast', 'stackpath',
+        'radware', 'druva', 'nsfocus', 'fortinet', 'fortiweb', 'citrix', 'cdn77',
+        'qualys', 'netscaler', 'bluedon', 'dotdefender', 'alert logic', 'trustwave',
+        'denyall', 'oracle cloud', 'shield square', 'reblaze', 'akamai ghost',
+        'wangsu', 'yundun', 'baidu yunjiasu', 'aliyun', '360 web application firewall',
+        'tencent cloud',
+    ]
+    waf_status_code = [400, 401, 403, 404, 406, 408, 409, 411, 413, 414, 418, 429, 451]
+    waf_redirect = ['/error', '/security-check', '/blocked']
+    waf_block_phrases = [
+        'access denied', 'request blocked', 'forbidden', 'not allowed',
+        'waf', 'web application firewall', 'security check', 'malicious request',
+        'you have been blocked', 'denied by policy',
+    ]
+    waf_headers = ['x-sucuri-id', 'cf-ray', 'x-akamai-transformed', 'x-cdn']
+
+    responder_headers = [k.lower() for k in response.headers.keys()]
+    
+    waf_possibility = {
+        'servers': 10 if response.headers.get('server', '').lower() in waf_servers else 0,
+        'status_code': 3 if response.status_code in waf_status_code else 0,
+        'location': 10 if response.headers.get('location', '').lower() in waf_redirect else 0,
+        'block_pharses': 5 if any(pharses.lower() in response.text.lower() for pharses in waf_block_phrases) else 0,
+        'headers': 5 if any(term.lower() in responder_headers for term in waf_block_phrases) else 0,
+    }
+    score += sum(v for v in waf_possibility.values())
+    return True if score >= 10 else False
+    
 
 async def sqli(origin, file=None, ua_status=False, timeout=10, SSL=True, proxies=None, interval=1, continue_=False, score_sqli=False):
     # CONSTANTES
@@ -118,7 +154,6 @@ async def sqli(origin, file=None, ua_status=False, timeout=10, SSL=True, proxies
     async def sqli_async(payloads):
         for payload in payloads:
             # VARIAVEIS
-            ip = ''
             score = 0
             details = {}
             html_sample = ''
@@ -137,23 +172,26 @@ async def sqli(origin, file=None, ua_status=False, timeout=10, SSL=True, proxies
                 for k, v in error_messages.items(): # itera sobre o dicionario
                     # if any(error_msg.lower() in r.text.lower() for error_msg in v): 
                     if any(re.search(error_msg.lower(), r.text.lower()) for error_msg in v): # verifica o tipo de erro no retorno
-                        details['db type'] = k
-                        html_sample = r.text if r.status_code in [301, 302, 307] else r.text[:500]
-                        
+                        details['database_type'] = k
+
                         if score_sqli:
                             score = await sqli_score_system(payload, r)
-                            details['SQLi Score'] = score
+                            details['sqli_score'] = score
                         
                         print(f'{" "*3}[>][{commons.time_now()}][{r.status_code}] Possível vulnerabilidade: {url} -> {payload}')
                         print(f'{" "*3}[>] Tipo: {k} Msg: {error_msg} url: {url} Score: {score}')
                         
                         if not continue_:
-                            return True, f'[#][{utils.time_now()}][{r.status_code}] Possível vulnerabilidade: {url} -> {payload}'     
+                            return True, f'[#][{utils.time_now()}][{r.status_code}] Possível vulnerabilidade: {url} -> {payload}'
+                
+                details['waf'] = await sqli_waf_detection(r) # verifica a chance de ter waf
+                html_sample = r.text if r.status_code in [301, 302, 307] else r.text[:500] # recolhe amostra do http
+            # retorna em caso de erros na requisicao
             else:
                 print(f'{" "*3}[>][{commons.time_now()}] Falha ao requisitar: {r}')
             
             # transforma em json object
-            json_obj_response = jsonlog.ObjectJson.from_data(domain=origin, payload=payload, url=url, ip=ip, r=r, html_sample=html_sample, details=details)
+            json_obj_response = jsonlog.ObjectJson.from_data(domain=origin, payload=payload, url=url, ip='', r=r, html_sample=html_sample, details=details)
             write = await jsonlog.AsyncLogger(name_save_file).json_write(json_obj_response)
 
         return True, f'[#] Wordlist concluido: {file} & Gerado arquivo: {name_save_file}'
