@@ -1,4 +1,5 @@
 import asyncio
+import random
 import re
 
 import utils
@@ -51,9 +52,9 @@ async def sqli_waf_detection(response):
     }
     score += sum(v for v in waf_possibility.values())
     return True if score >= 10 else False
-    
 
-async def sqli(origin, file=None, ua_status=False, timeout=10, SSL=True, proxies=None, interval=1, continue_=False, score_sqli=False):
+
+async def sqli(origin, file=None, ua_status=False, headers=None, timeout=10, SSL=True, proxies=None, interval=1, continue_=False, score_sqli=False, try_requests=1):
     # CONSTANTES
     name_save_file = 'sqli_test.json'
     scheme = 'https' if SSL else 'http'
@@ -157,16 +158,15 @@ async def sqli(origin, file=None, ua_status=False, timeout=10, SSL=True, proxies
             score = 0
             details = {}
             html_sample = ''
-            
+
             payload = payload.strip()
-            
             url = f'{scheme}://{origin}'.replace('*', payload)
 
             await asyncio.sleep(interval)
 
             print(f'[+][{commons.time_now()}] Tentando: {url}')
-            status, r = commons.request(url, ua_status=ua_status, timeout=timeout,
-                                        SSL=SSL, redirect=False, proxies=proxies)
+            status, r = commons.request(url, timeout=timeout, SSL=SSL, headers=headers,
+                                        ua_status=ua_status, redirect=False, proxies=proxies, try_requests=try_requests)
             
             if status:
                 for k, v in error_messages.items(): # itera sobre o dicionario
