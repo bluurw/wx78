@@ -6,6 +6,7 @@ import utils
 import jsonlog
 import commons
 
+
 # payload -> carga enviada
 # response -> resposta bruta da requisicao 
 async def sqli_score_system(payload, response):
@@ -19,6 +20,7 @@ async def sqli_score_system(payload, response):
     }
     score += sum(v for v in suspicious.values())
     return score
+
 
 # response -> resposta bruta da requisicao
 async def sqli_waf_detection(response):
@@ -52,6 +54,20 @@ async def sqli_waf_detection(response):
     }
     score += sum(v for v in waf_possibility.values())
     return True if score >= 10 else False
+
+
+# file -> wordlist
+async def sqli_useragent(file='wordlists/sqli/injection.txt'):
+    with open(file, 'r') as f:
+        lines = f.readlines()
+    
+    headers = {
+        'User-Agent': lines[random.randint(0, len(lines)-1)].strip(),
+        'Referer': lines[random.randint(0, len(lines)-1)].strip(),
+        'X-Forwarded-For': lines[random.randint(0, len(lines)-1)].strip(),
+    }
+    return headers
+
 
 
 async def sqli(origin, file=None, ua_status=False, headers=None, timeout=10, SSL=True, proxies=None, interval=1, continue_=False, score_sqli=False, try_requests=1):
