@@ -42,6 +42,8 @@ def request(url, timeout, SSL, proxies=None, headers=None, ua_status=False, redi
             error_msg = f'Erro de requisição: {url} - {err}'
         except requests.exceptions.SSLError as err:
             error_msg = f'Erro de certificado: {url} - {err}'
+        except:
+            error_msg = f'Erro nao documentado encontrado: {url}'
         try_requests -= 1
     return False, error_msg
 
