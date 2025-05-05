@@ -119,21 +119,23 @@ async def response_analyzer(origin, payload, response, score_sqli, continue_):
         ],
     }
 
-    for k, v in error_messages.items(): # itera sobre o dicionario
-        # if any(error_msg.lower() in r.text.lower() for error_msg in v): 
-        if any(re.search(error_msg.lower(), response.text.lower()) for error_msg in v): # verifica o tipo de erro no retorno
-            details['database_type'] = k
+    if score_sqli:
+        score = await sqli_score_system(payload, response)
+        details['sqli_score'] = score
 
-            if score_sqli:
-                score = await sqli_score_system(payload, response)
-                details['sqli_score'] = score
-            
-            print(f'{" "*3}[>][{commons.time_now()}][{response.status_code}] Possível vulnerabilidade: {origin} -> {payload}')
-            print(f'{" "*3}[>] Tipo: {k} Msg: {error_msg} url: {response.url} Score: {score}')
-            
-            if not continue_:
-                print(f'[#][{utils.time_now()}][{response.status_code}] Possível vulnerabilidade: {url} -> {payload}')
-                return details, score, html_sample
+    for k, v in error_messages.items(): # itera sobre o dicionario
+        # if any(re.search(error_msg.lower(), response.text.lower()) for error_msg in v): # verifica o tipo de erro no retorno
+        for error_msg in v:
+            if re.search(error_msg.lower(), response.text.lower(), re.IGNORECASE | re.DOTALL):
+                details['database_type'] = k
+                
+                print(f'{" "*3}[>][{commons.time_now()}][{response.status_code}] Possivel vulnerabilidade: {origin} -> {payload}')
+                print(f'{" "*3}[>] Tipo: {k} Msg: {error_msg} url: {response.url} Score: {score}')
+                
+                if not continue_:
+                    print(f'[#][{commons.time_now()}][{response.status_code}] Possivel vulnerabilidade: {origin} -> {payload}')
+                    return details, score, html_sample
+                    break
     
     details['waf'] = await sqli_waf_detection(response) # verifica a chance de ter waf
     html_sample = response.text if response.status_code in [301, 302, 307] else response.text[:500] # recolhe amostra do http
@@ -146,7 +148,7 @@ async def sqli(origin, option='query string', file=None, ua_status=False, header
     scheme = 'https' if SSL else 'http'
     
     if file is None:
-        print(f'[#][{commons.time_now()}] Usando payloads padrão')
+        print(f'[#][{commons.time_now()}] Usando payloads padrao')
         file = 'wordlists/sqli/default_payload.txt'
 
     status_payload, payloads = await commons.fileReader(file)
@@ -163,7 +165,7 @@ async def sqli(origin, option='query string', file=None, ua_status=False, header
                                     ua_status=ua_status, redirect=False, proxies=proxies, try_requests=try_requests)
         
         if status:
-            details, score, html_sample = await response_analyzer(origin, payload, r, score_sqli=score_sqli, continue_)
+            details, score, html_sample = await response_analyzer(origin, payload, r, continue_=continue_, score_sqli=score_sqli)
         else:
             print(f'{" "*3}[>][{commons.time_now()}] Falha ao requisitar: {r}')
             details, score, html_sample = {}, 0, ''
@@ -181,6 +183,7 @@ async def sqli(origin, option='query string', file=None, ua_status=False, header
             await engine(payload, url)
 
         return True, f'[#][{commons.time_now()}] Wordlist concluida: {file} → {name_save_file}'
+        break
 
     elif option == 'headers':
         total_combinations = len(payloads) ** 3
@@ -213,7 +216,7 @@ async def main():
         status, attk = await sqli(
             'www.constinta.com.br',
             option='headers',
-            continue_=True,
+            continue_=False,
             score_sqli=True,
         )
     except TypeError:
