@@ -63,4 +63,4 @@ async def subdomain(origin, file, filter_status_code=[], ua_status=False, timeou
             
 # Exemplo de uso
 async def main(origin, file, filter_status_code=[], ua_status=False, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False):
-    await subdomain(origin, file, filter_status_code=[], ua_status=False, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False)
+    await subdomain(origin, file, filter_status_code, ua_status, timeout, SSL, redirect, proxies, interval, advanced)
