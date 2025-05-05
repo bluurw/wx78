@@ -8,6 +8,8 @@ lib64
 anotacao.txt
 requests.txt
 *.json
+*.tmp
+*.json.tmp
 
 # FOLDER CUSTOM
 MiTM
