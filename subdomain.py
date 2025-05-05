@@ -62,8 +62,5 @@ async def subdomain(origin, file, filter_status_code=[], ua_status=False, timeou
 
             
 # Exemplo de uso
-async def main():
-    await subdomain('socasadas.com', 'wordlists/subdomain/wordlist.txt', filter_status_code=[], ua_status=True, 
-                    redirect=False, timeout=10, proxies=None, interval=0, advanced=True)
-
-asyncio.run(main())
+async def main(origin, file, filter_status_code=[], ua_status=False, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False):
+    await subdomain(origin, file, filter_status_code=[], ua_status=False, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False)
