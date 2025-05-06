@@ -143,7 +143,7 @@ async def response_analyzer(origin, payload, response, score_sqli, continue_):
     return details, score, html_sample
 
 
-async def sqli(origin, option='query string', file=None, ua_status=False, headers=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
+async def sqli(origin, option='query string', file=None, ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
     name_save_file = 'sqli_test.json'
     scheme = 'https' if SSL else 'http'
     
@@ -161,7 +161,7 @@ async def sqli(origin, option='query string', file=None, ua_status=False, header
         print(f'[+][{commons.time_now()}] Tentando: {url}')
         if option == 'headers':
             print(f'{" "*3}[>][{commons.time_now()}] {headers}')
-        status, r = commons.request(url, timeout=timeout, SSL=SSL, headers=headers,
+        status, r = commons.request(url, timeout=timeout, SSL=SSL, headers=headers, cookies=cookies,
                                     ua_status=ua_status, redirect=False, proxies=proxies, try_requests=try_requests)
         
         if status:
@@ -170,7 +170,7 @@ async def sqli(origin, option='query string', file=None, ua_status=False, header
             print(f'{" "*3}[>][{commons.time_now()}] Falha ao requisitar: {r}')
             details, score, html_sample = {}, 0, ''
         
-        json_obj = jsonlog.ObjectJson.from_data(
+        json_obj = jsonlog.ObjectJsonCommon.from_data(
             domain=origin, payload=payload, url=url, ip='', r=r,
             html_sample=html_sample, details=details
         )
@@ -183,7 +183,6 @@ async def sqli(origin, option='query string', file=None, ua_status=False, header
             await engine(payload, url)
 
         return True, f'[#][{commons.time_now()}] Wordlist concluida: {file} → {name_save_file}'
-        break
 
     elif option == 'headers':
         total_combinations = len(payloads) ** 3
