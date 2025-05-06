@@ -2,6 +2,7 @@ import re
 
 # response -> bruto text da requisicao
 
+
 # coleta telefones
 def get_all_telephones(response):
     set_ = set()
@@ -27,6 +28,7 @@ def get_all_form(response):
     for result in re.findall(rgx, response.text, re.DOTALL):
         set_.add(result)
     return set_
+
 
 # input
 def get_all_input(response):
