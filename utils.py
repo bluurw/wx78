@@ -1,7 +1,8 @@
 import asyncio
 import socket
+import whois
 
-# host -> str com nome do host 
+# host -> nome do host/domain str()
 def get_ip_host(host):
     try:
         full_info = socket.gethostbyname_ex(host)
@@ -11,6 +12,15 @@ def get_ip_host(host):
     except Exception as e:
         return False, f'Qualquer erro foi retornado {e}'
 
+# domain -> recebe host/domain str()
+def get_whois(domain):
+    try:
+        inquiry = whois.whois(domain)
+        return True, inquiry
+    except Exception as e:
+        return False, f'Erro ao consultar informacoes do dominio {e}'
+
+# response_headers -> recebe o headers como entrada {}
 async def get_headers_metadata(response_headers):
     if 'CaseInsensitiveDict' in str(type(response_headers)):
         headers_lowercase = {key.lower(): value.lower() for key, value in response_headers.items()}
