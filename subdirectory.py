@@ -59,7 +59,7 @@ async def subdirectory(origin, file, filter_status_code=[], ua_status=False, tim
                
                 
             # transforma em json object
-            json_obj_response = jsonlog.ObjectJson.from_data(origin, payload, url, ip, r, cert_metadata, html_sample)
+            json_obj_response = jsonlog.ObjectJsonCommon.from_data(origin, payload, url, ip, r, cert_metadata, html_sample)
             write = await jsonlog.AsyncLogger(name_save_file).json_write(json_obj_response)
 
         return True, f'[#] Wordlist concluido: {file} & Gerado arquivo: {name_save_file}'
