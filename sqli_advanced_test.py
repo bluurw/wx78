@@ -143,7 +143,7 @@ async def response_analyzer(origin, payload, response, score_sqli, continue_):
     return details, score, html_sample
 
 
-async def sqli(origin, option='query string', file=None, ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
+async def sqli(origin, option='query string', file='wordlists/sqli/default_payload.txt', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
     name_save_file = 'sqli_test.json'
     scheme = 'https' if SSL else 'http'
     
@@ -161,6 +161,7 @@ async def sqli(origin, option='query string', file=None, ua_status=False, header
         print(f'[+][{commons.time_now()}] Tentando: {url}')
         if option == 'headers':
             print(f'{" "*3}[>][{commons.time_now()}] {headers}')
+        
         status, r = commons.request(url, timeout=timeout, SSL=SSL, headers=headers, cookies=cookies,
                                     ua_status=ua_status, redirect=False, proxies=proxies, try_requests=try_requests)
         
@@ -210,15 +211,11 @@ async def sqli(origin, option='query string', file=None, ua_status=False, header
 
 # www.constinta.com.br/v1-index-php-lojas?srsltid=*
 # Exemplo de uso
-async def main():
-    try:
-        status, attk = await sqli(
-            'www.constinta.com.br',
-            option='headers',
-            continue_=False,
-            score_sqli=True,
-        )
-    except TypeError:
-        return True, f'[#] Execucao finalizada'
 
-asyncio.run(main())
+async def main(origin, option='query string', file='wordlists/sqli/default_payload.txt', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
+    try:
+        status, attk = await sqli(origin, option, file, ua_status, headers, cookies, timeout, SSL, proxies, interval, continue_, score_sqli, try_requests)
+    except TypeError:
+        return False, f'[#] Um erro de tipagem surgiu'
+    except Exception as err:
+        return False, f'[#] Um erro surgiu & a execucao foi interrompida {err}'
