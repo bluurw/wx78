@@ -5,7 +5,7 @@ import jsonlog
 import commons
 import certificate
 
-async def subdomain(origin, file, filter_status_code=[], ua_status=False, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False):
+async def subdomain(origin, file, filter_status_code=[], headers=None, ua_status=False, cookies=None, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False, try_requests=1):
 
     # CONSTANTES
     name_save_file = 'subdomain_teste.json'
@@ -28,10 +28,10 @@ async def subdomain(origin, file, filter_status_code=[], ua_status=False, timeou
             url = f'{scheme}://{payload}.{origin}'
 
             await asyncio.sleep(interval)
-
+            
             print(f'[+][{commons.time_now()}] Testando: {url}')
-            status, r = commons.request(url, ua_status=ua_status, timeout=timeout,
-                                        SSL=SSL, redirect=redirect, proxies=proxies)
+            status, r = commons.request(url=url, timeout=timeout, SSL=SSL, proxies=proxies, headers=headers, 
+                                        ua_status=ua_status, cookies=cookies, redirect=redirect, try_requests=try_requests)
             
             if status:
                 if len(filter_status_code) == 0 or (len(filter_status_code) != 0 and r.status_code in filter_status_code):
@@ -61,6 +61,12 @@ async def subdomain(origin, file, filter_status_code=[], ua_status=False, timeou
     await subdomain_async(payloads) # executa todo o loop e aguarda
 
             
-# Exemplo de uso
-async def main(origin, file, filter_status_code=[], ua_status=False, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False):
-    await subdomain(origin, file, filter_status_code, ua_status, timeout, SSL, redirect, proxies, interval, advanced)
+# Attack
+async def main(origin, file, filter_status_code=[], headers=None, ua_status=False, cookies=None, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False, try_requests=1):
+    try:
+        status, attk = await subdomain(origin, file, filter_status_code, headers, ua_status, cookies, timeout, SSL, redirect, proxies, interval, advanced, try_requests)
+        return True, f'[#] Execucao finalizada'
+    except TypeError:
+        return False, f'[#] Um erro de tipagem surgiu'
+    except Exception as err:
+        return False, f'[#] Um erro surgiu & a execucao foi interrompida {err}'
