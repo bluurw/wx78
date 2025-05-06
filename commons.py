@@ -12,7 +12,7 @@ import useragent
 # ua_status -> se true, usa headers aleatorios, se houve algo em header, header sera ignorado.
 # redirect -> permite o redirecionamento
 # try_requests -> numero maximo de tentativas
-def request(url, timeout, SSL, proxies=None, headers=None, ua_status=False, redirect=False, try_requests=1):
+def request(url, timeout, SSL, proxies=None, headers=None, cookies=None, ua_status=False, redirect=False, try_requests=1):
     if not 'https' in url or not 'http' in url:
         url = f'https://{url}' if SSL else f'http://{url}'
     while try_requests > 0:
@@ -28,6 +28,7 @@ def request(url, timeout, SSL, proxies=None, headers=None, ua_status=False, redi
             r = requests.get(
                 url,
                 headers=headers_,
+                cookies=cookies,
                 timeout=timeout,
                 verify=SSL,
                 allow_redirects=redirect,
