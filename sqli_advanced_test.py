@@ -209,9 +209,7 @@ async def sqli(origin, option='query string', file='wordlists/sqli/default_paylo
         return False, f'[-][{commons.time_now()}] Opcao invalida: {option}'
 
 
-# www.constinta.com.br/v1-index-php-lojas?srsltid=*
-# Exemplo de uso
-
+# Attk
 async def main(origin, option='query string', file='wordlists/sqli/default_payload.txt', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
     try:
         status, attk = await sqli(origin, option, file, ua_status, headers, cookies, timeout, SSL, proxies, interval, continue_, score_sqli, try_requests)
