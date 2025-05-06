@@ -1,11 +1,6 @@
 import re
 
-# sondar a pagina catalogando linguagem usada (html, css, js, php) entre outras tecnologias (bancos de dados, etc)
-
 # response -> bruto text da requisicao
-
-# coleta redes sociais
-
 
 # coleta telefones
 def get_all_telephones(response):
