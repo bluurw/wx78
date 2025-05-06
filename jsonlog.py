@@ -6,7 +6,6 @@ import json
 import shutil
 
 import commons
-import utils
 
 @dataclass
 class ObjectJsonWhois:
