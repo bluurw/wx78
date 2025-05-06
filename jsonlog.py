@@ -6,9 +6,50 @@ import json
 import shutil
 
 import commons
+import utils
 
 @dataclass
-class ObjectJson:
+class ObjectJsonWhois:
+    domain_name: Optional[str] = None
+    registrar: Optional[str] = None
+    whois_server: Optional[str] = None
+    referral_url: Optional[str] = None
+    update_date: Optional[str] = None
+    creation_date: Optional[str] = None
+    expiration_date: Optional[str] = None
+    status: Optional[List[str]] = None
+    name_servers: Optional[List[str]] = None
+    registrant: Optional[dict] = None
+    administrative_contact: Optional[dict] = None
+    technical_contact: Optional[dict] = None
+    billing_contact: Optional[dict] = None
+    dnssec: Optional[dict] = None
+
+    def to_dict(self):
+        return asdict(self)
+    
+    @staticmethod
+    def from_data(response_whois):
+        return ObjectJsonWhois(
+            domain_name=response_whois.get('domain_name') or response_whois.get('domain'),
+            registrar=response_whois.get('registrar'),
+            whois_server=response_whois.get('whois_server'),
+            referral_url=response_whois.get('referral_url'),
+            update_date=response_whois.get('update_date') or response_whois.get('updated_date'),
+            creation_date=response_whois.get('creation_date'),
+            expiration_date=response_whois.get('expiration_date') or response_whois.get('expires_date'),
+            status=response_whois.get('status'),
+            name_servers=response_whois.get('name_servers') or response_whois.get('nameservers'),
+            registrant=response_whois.get('registrant'),
+            administrative_contact=response_whois.get('admin'),
+            technical_contact=response_whois.get('tech'),
+            billing_contact=response_whois.get('billing'),
+            dnssec=response_whois.get('dnssec')
+        )
+
+
+@dataclass
+class ObjectJsonCommon:
     domain: str
     ip: str
     payload: dict
@@ -30,8 +71,7 @@ class ObjectJson:
     @staticmethod
     def from_data(domain, payload, url, ip, r, details={}, cert_metadata={}, html_sample=None):
         status = True if 'requests.models.Response' in str(type(r)) else False
-        
-        return ObjectJson(
+        return ObjectJsonCommon(
             domain=domain,
             ip=ip,
             payload=payload,
@@ -72,7 +112,7 @@ class AsyncLogger:
                     logs = []
                 
                 logs.append(serialize(log_))
-                await f.write(json.dumps(logs, indent=4, ensure_ascii=False))
+                await f.write(json.dumps(logs, indent=4, ensure_ascii=False, default=str))
             
             shutil.move(temp_file, file)
             return True, 'Log escrito com sucesso'
