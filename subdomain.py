@@ -53,7 +53,7 @@ async def subdomain(origin, file, filter_status_code=[], ua_status=False, timeou
                
                 
             # transforma em json object
-            json_obj_response = jsonlog.ObjectJson.from_data(domain=origin, payload=payload, url=url, ip=ip, r=r, cert_metadata=cert_metadata, html_sample=html_sample)
+            json_obj_response = jsonlog.ObjectJsonCommon.from_data(domain=origin, payload=payload, url=url, ip=ip, r=r, cert_metadata=cert_metadata, html_sample=html_sample)
             write = await jsonlog.AsyncLogger(name_save_file).json_write(json_obj_response)
 
         return True, f'[+] Wordlist concluido: {file} & Gerado arquivo: {name_save_file}'
