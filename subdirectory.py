@@ -10,7 +10,8 @@ async def subdirectory(origin, file, filter_status_code=[], headers=None, ua_sta
 
     # CONSTANTES
     name_save_file = 'subdirectory_teste.json'
-    scheme = 'https' if SSL else 'http'
+    if not origin.startswith('http://') and not origin.startswith('https://'):
+        scheme = 'https' if SSL else 'http'
 
     status_payload, payloads = await commons.fileReader(file)
     if not status_payload:
