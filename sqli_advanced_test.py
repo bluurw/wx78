@@ -145,7 +145,8 @@ async def response_analyzer(origin, payload, response, score_sqli, continue_):
 
 async def sqli(origin, option='query string', file='wordlists/sqli/default_payload.txt', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
     name_save_file = 'sqli_test.json'
-    scheme = 'https' if SSL else 'http'
+    if not origin.startswith('http://') and not origin.startswith('https://'):
+        scheme = 'https' if SSL else 'http'
     
     if file is None:
         print(f'[#][{commons.time_now()}] Usando payloads padrao')
