@@ -29,7 +29,10 @@ def get_whois(hostname):
 def get_dns(hostname):
     dtdns = {}
     hostname_ = hostname.split('://')[1] if hostname.startswith('http://') or hostname.startswith('https://') else hostname
-    record_types = ['A', 'AAAA', 'MX', 'NS', 'TXT', 'CNAME', 'SOA', 'PTR', 'SRV', 'CAA']
+    record_types = sorted([
+        'A', 'AAAA', 'ANY', 'CAA', 'CNAME', 'DNSKEY', 'DS',
+        'MX', 'NS', 'PTR', 'SOA', 'SRV', 'TLSA', 'TSIG', 'TXT',
+    ])
     for type_ in record_types:
         try:
             response = dns.resolver.resolve(hostname_, type_)
