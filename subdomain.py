@@ -9,8 +9,6 @@ async def subdomain(origin, file, filter_status_code=[], headers=None, ua_status
 
     # CONSTANTES
     name_save_file = 'subdomain_teste.json'
-    if not origin.startswith('http://') and not origin.startswith('https://'):
-        scheme = 'https' if SSL else 'http'
 
     status_payload, payloads = await commons.fileReader(file)
     if not status_payload:
@@ -26,7 +24,7 @@ async def subdomain(origin, file, filter_status_code=[], headers=None, ua_status
             ip = ''
             
             payload = payload.strip()
-            url = f'{scheme}://{payload}.{origin}'
+            url = f"{origin.split('://')[0]}://{payload}.{origin.split('://')[1]}" if origin.startswith('http://') or origin.startswith('https://') else f'https://{payload}.{origin}' if SSL else f'http://{payload}.{origin}'
 
             await asyncio.sleep(interval)
             
@@ -66,7 +64,10 @@ async def subdomain(origin, file, filter_status_code=[], headers=None, ua_status
 async def main(origin, file, filter_status_code=[], headers=None, ua_status=False, cookies=None, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False, try_requests=1):
     try:
         status, attk = await subdomain(origin, file, filter_status_code, headers, ua_status, cookies, timeout, SSL, redirect, proxies, interval, advanced, try_requests)
-        return True, f'[#] Execucao finalizada'
+        if status:
+            return True, f'[#] Execucao finalizada'
+        else:
+            return False, f'[#] Execucao finalizada por erro {attk}'
     except TypeError:
         return False, f'[#] Um erro de tipagem surgiu'
     except Exception as err:
