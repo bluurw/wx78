@@ -10,8 +10,6 @@ async def subdirectory(origin, file, filter_status_code=[], headers=None, ua_sta
 
     # CONSTANTES
     name_save_file = 'subdirectory_teste.json'
-    if not origin.startswith('http://') and not origin.startswith('https://'):
-        scheme = 'https' if SSL else 'http'
 
     status_payload, payloads = await commons.fileReader(file)
     if not status_payload:
@@ -30,7 +28,7 @@ async def subdirectory(origin, file, filter_status_code=[], headers=None, ua_sta
             
             payload = payload.strip()
             origin_ = origin if origin.endswith('/') else origin + '/'
-            url = f'{scheme}://{origin_}{payload}'
+            url = f"{origin.split('://')[0]}://{origin.split('://')[1]}{payload}" if origin.startswith('http://') or origin.startswith('https://') else f'https://{origin}{payload}' if SSL else f'http://{origin}{payload}'
 
             await asyncio.sleep(interval)
 
@@ -71,7 +69,10 @@ async def subdirectory(origin, file, filter_status_code=[], headers=None, ua_sta
 async def main(origin, file, filter_status_code=[], headers=None, ua_status=False, cookies=None, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False, try_requests=1):
     try:
         status, attk = await subdirectory(origin, file, filter_status_code, headers, ua_status, cookies, timeout, SSL, redirect, proxies, interval, advanced, try_requests)
-        return True, f'[#] Execucao finalizada'
+        if status:
+            return True, f'[#] Execucao finalizada'
+        else:
+            return False, f'[#] Execucao finalizada por erro {attk}'
     except TypeError:
         return False, f'[#] Um erro de tipagem surgiu'
     except Exception as err:
