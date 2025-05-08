@@ -145,8 +145,7 @@ async def response_analyzer(origin, payload, response, score_sqli, continue_):
 
 async def sqli(origin, option='query string', file='wordlists/sqli/default_payload.txt', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
     name_save_file = 'sqli_test.json'
-    if not origin.startswith('http://') and not origin.startswith('https://'):
-        scheme = 'https' if SSL else 'http'
+    #scheme = 'https' if SSL else 'http'
     
     if file is None:
         print(f'[#][{commons.time_now()}] Usando payloads padrao')
@@ -181,7 +180,8 @@ async def sqli(origin, option='query string', file='wordlists/sqli/default_paylo
     if option == 'query string':
         for payload in payloads:
             payload = payload.strip()
-            url = f'{scheme}://{origin}'.replace('*', payload)
+            origin = f"{origin.split('://')[0]}://{origin.split('://')[1]}" if origin.startswith('http://') or origin.startswith('https://') else f'https://{origin}' if SSL else f'http://{origin}'
+            url = f'{origin}'.replace('*', payload)
             await engine(payload, url)
 
         return True, f'[#][{commons.time_now()}] Wordlist concluida: {file} → {name_save_file}'
@@ -201,7 +201,7 @@ async def sqli(origin, option='query string', file='wordlists/sqli/default_paylo
                 continue
 
             used_combinations.add(combo_key)
-            url = f'{scheme}://{origin}'  # aqui o payload está no header, não na URL
+            url = f"{origin.split('://')[0]}://{origin.split('://')[1]}" if origin.startswith('http://') or origin.startswith('https://') else f'https://{origin}' if SSL else f'http://{origin}'  # aqui o payload está no header, não na URL
             await engine(f'UA:{current_headers["User-Agent"]}|Ref:{current_headers["Referer"]}|IP:{current_headers["X-Forwarded-For"]}', url, headers=current_headers)
 
         return True, f'[#][{commons.time_now()}] Wordlist concluida: {file} → {name_save_file}'
@@ -210,10 +210,14 @@ async def sqli(origin, option='query string', file='wordlists/sqli/default_paylo
         return False, f'[-][{commons.time_now()}] Opcao invalida: {option}'
 
 
-# Attk
+# Attack
 async def main(origin, option='query string', file='wordlists/sqli/default_payload.txt', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
     try:
         status, attk = await sqli(origin, option, file, ua_status, headers, cookies, timeout, SSL, proxies, interval, continue_, score_sqli, try_requests)
+        if status:
+            return True, f'[#] Execucao finalizada'
+        else:
+            return False, f'[#] Execucao finalizada por erro {attk}'
     except TypeError:
         return False, f'[#] Um erro de tipagem surgiu'
     except Exception as err:
