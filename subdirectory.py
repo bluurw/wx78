@@ -6,12 +6,12 @@ import commons
 import certificate
 import HTMLAnalitcs
 
-async def subdirectory(origin, file, filter_status_code=[], headers=None, ua_status=False, cookies=None, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False, try_requests=1):
+async def subdirectory(target, wordlist_file, save_file, filter_status_code, headers, ua_status, cookies, timeout, SSL, redirect, proxies, interval, advanced, try_requests, verbose):
 
     # CONSTANTES
-    name_save_file = 'subdirectory_teste.json'
+    save_file = save_file if save_file.endswith('.json') else f'{save_file.rsplit(".", 1)[0]}.json'
 
-    status_payload, payloads = await commons.fileReader(file)
+    status_payload, payloads = await commons.fileReader(wordlist_file)
     if not status_payload:
         print(f'[#][{commons.time_now()}] {payloads}')
         return False, payloads
@@ -27,12 +27,13 @@ async def subdirectory(origin, file, filter_status_code=[], headers=None, ua_sta
             ip = ''
             
             payload = payload.strip()
-            origin_ = origin if origin.endswith('/') else origin + '/'
-            url = f"{origin.split('://')[0]}://{origin.split('://')[1]}{payload}" if origin.startswith('http://') or origin.startswith('https://') else f'https://{origin}{payload}' if SSL else f'http://{origin}{payload}'
+            target_ = target if target.endswith('/') else target + '/'
+            url = f"{target_.split('://')[0]}://{target_.split('://')[1]}{payload}" if target_.startswith('http://') or target_.startswith('https://') else f'https://{target_}{payload}' if SSL else f'http://{target_}{payload}'
 
             await asyncio.sleep(interval)
 
-            print(f'[+][{commons.time_now()}] Testando: {url}')
+            if verbose:
+                print(f'[+][{commons.time_now()}] Testando: {url}')
             status, r = commons.request(url=url, timeout=timeout, SSL=SSL, proxies=proxies, headers=headers, 
                                         ua_status=ua_status, cookies=cookies, redirect=redirect, try_requests=try_requests)
             
@@ -58,17 +59,21 @@ async def subdirectory(origin, file, filter_status_code=[], headers=None, ua_sta
                
                 
             # transforma em json object
-            json_obj_response = jsonlog.ObjectJsonCommon.from_data(origin, payload, url, ip, r, cert_metadata, html_sample)
-            write = await jsonlog.AsyncLogger(name_save_file).json_write(json_obj_response)
+            json_obj_response = jsonlog.ObjectJsonCommon.from_data(target, payload, url, ip, r, cert_metadata, html_sample)
+            write = await jsonlog.AsyncLogger(save_file).json_write(json_obj_response)
 
-        return True, f'[#] Wordlist concluido: {file} & Gerado arquivo: {name_save_file}'
+        return True, f'[#] Wordlist concluido: {wordlist_file} & Gerado arquivo: {save_file}'
     
     await subdirectory_async(payloads) # executa todo o loop e aguarda
 
+
+
+
 # Attack
-async def main(origin, file, filter_status_code=[], headers=None, ua_status=False, cookies=None, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False, try_requests=1):
+async def main(target, wordlist_file, save_file='subdirectory_teste.json', filter_status_code=[], headers=None, ua_status=False, cookies=None, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False, try_requests=1, verbose=True):
+    # Criar validacao para arquivos vazios
     try:
-        status, attk = await subdirectory(origin, file, filter_status_code, headers, ua_status, cookies, timeout, SSL, redirect, proxies, interval, advanced, try_requests)
+        status, attk = await subdirectory(target, wordlist_file, save_file, filter_status_code, headers, ua_status, cookies, timeout, SSL, redirect, proxies, interval, advanced, try_requests, verbose)
         if status:
             return True, f'[#] Execucao finalizada'
         else:
