@@ -55,12 +55,12 @@ async def sqli_waf_detection(response):
     score += sum(v for v in waf_possibility.values())
     return True if score >= 10 else False
 
-# origin -> origem
+# target -> origem
 # payload -> carga enviada
 # response -> resposta bruta da request
 # score_sqli -> score que atesta vulnerabilidade
 # continue_ -> valor booleano que decide se continua ou nao apos encontrar vulnerabilidade
-async def response_analyzer(origin, payload, response, score_sqli, continue_):
+async def response_analyzer(target, payload, response, score_sqli, continue_):
     score = 0
     details = {}
     html_sample = ""
@@ -129,11 +129,11 @@ async def response_analyzer(origin, payload, response, score_sqli, continue_):
             if re.search(error_msg.lower(), response.text.lower(), re.IGNORECASE | re.DOTALL):
                 details['database_type'] = k
                 
-                print(f'{" "*3}[>][{commons.time_now()}][{response.status_code}] Possivel vulnerabilidade: {origin} -> {payload}')
+                print(f'{" "*3}[>][{commons.time_now()}][{response.status_code}] Possivel vulnerabilidade: {target} -> {payload}')
                 print(f'{" "*3}[>] Tipo: {k} Msg: {error_msg} url: {response.url} Score: {score}')
                 
                 if not continue_:
-                    print(f'[#][{commons.time_now()}][{response.status_code}] Possivel vulnerabilidade: {origin} -> {payload}')
+                    print(f'[#][{commons.time_now()}][{response.status_code}] Possivel vulnerabilidade: {target} -> {payload}')
                     return details, score, html_sample
                     break
     
@@ -143,47 +143,50 @@ async def response_analyzer(origin, payload, response, score_sqli, continue_):
     return details, score, html_sample
 
 
-async def sqli(origin, name_save_file='sqli_test.json', option='query string', file='wordlists/sqli/default_payload.txt', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
+async def sqli(target, wordlist_file, option, save_file, ua_status, headers, cookies, timeout, SSL, proxies, interval, continue_, score_sqli, try_requests, verbose):
     #scheme = 'https' if SSL else 'http'
-    
-    if file is None:
+    save_file = save_file if save_file.endswith('.json') else f'{save_file.rsplit(".", 1)[0]}.json'
+    if wordlist_file is None:
         print(f'[#][{commons.time_now()}] Usando payloads padrao')
-        file = 'wordlists/sqli/default_payload.txt'
+        wordlist_file = 'wordlists/sqli/default_payload.txt'
 
-    status_payload, payloads = await commons.fileReader(file)
+    status_payload, payloads = await commons.fileReader(wordlist_file)
     if not status_payload:
         print(f'[-][{commons.time_now()}] {payloads}')
         return False, payloads
 
     async def engine(payload, url, headers=None):
         await asyncio.sleep(interval)
-        print(f'[+][{commons.time_now()}] Tentando: {url}')
-        if option == 'headers':
+        if verbose:
+            print(f'[+][{commons.time_now()}] Tentando: {url}')
+        if option == 'headers' and verbose:
             print(f'{" "*3}[>][{commons.time_now()}] {headers}')
         
         status, r = commons.request(url, timeout=timeout, SSL=SSL, headers=headers, cookies=cookies,
                                     ua_status=ua_status, redirect=False, proxies=proxies, try_requests=try_requests)
         
         if status:
-            details, score, html_sample = await response_analyzer(origin, payload, r, continue_=continue_, score_sqli=score_sqli)
+            details, score, html_sample = await response_analyzer(target, payload, r, continue_=continue_, score_sqli=score_sqli)
         else:
             print(f'{" "*3}[>][{commons.time_now()}] Falha ao requisitar: {r}')
             details, score, html_sample = {}, 0, ''
         
         json_obj = jsonlog.ObjectJsonCommon.from_data(
-            domain=origin, payload=payload, url=url, ip='', r=r,
+            domain=target, payload=payload, url=url, ip='', r=r,
             html_sample=html_sample, details=details
         )
-        await jsonlog.AsyncLogger(name_save_file).json_write(json_obj)
+        await jsonlog.AsyncLogger(save_file).json_write(json_obj)
 
     if option == 'query string':
+        if not '*' in target:
+            return False, f'[#][{commons.time_now()}] Nao ha indicativo de substituicao (*).. Ex: example.com/?=*'    
         for payload in payloads:
             payload = payload.strip()
-            origin = f"{origin.split('://')[0]}://{origin.split('://')[1]}" if origin.startswith('http://') or origin.startswith('https://') else f'https://{origin}' if SSL else f'http://{origin}'
-            url = f'{origin}'.replace('*', payload)
+            target = f"{target.split('://')[0]}://{target.split('://')[1]}" if target.startswith('http://') or target.startswith('https://') else f'https://{target}' if SSL else f'http://{target}'
+            url = f'{target}'.replace('*', payload)
             await engine(payload, url)
 
-        return True, f'[#][{commons.time_now()}] Wordlist concluida: {file} → {name_save_file}'
+        return True, f'[#][{commons.time_now()}] Wordlist concluida: {wordlist_file} → {save_file}'
 
     elif option == 'headers':
         total_combinations = len(payloads) ** 3
@@ -200,23 +203,23 @@ async def sqli(origin, name_save_file='sqli_test.json', option='query string', f
                 continue
 
             used_combinations.add(combo_key)
-            url = f"{origin.split('://')[0]}://{origin.split('://')[1]}" if origin.startswith('http://') or origin.startswith('https://') else f'https://{origin}' if SSL else f'http://{origin}'  # aqui o payload está no header, não na URL
+            url = f"{target.split('://')[0]}://{target.split('://')[1]}" if target.startswith('http://') or target.startswith('https://') else f'https://{target}' if SSL else f'http://{target}'  # aqui o payload está no header, não na URL
             await engine(f'UA:{current_headers["User-Agent"]}|Ref:{current_headers["Referer"]}|IP:{current_headers["X-Forwarded-For"]}', url, headers=current_headers)
 
-        return True, f'[#][{commons.time_now()}] Wordlist concluida: {file} → {name_save_file}'
+        return True, f'[#][{commons.time_now()}] Wordlist concluida: {wordlist_file} → {save_file}'
 
     else:
         return False, f'[-][{commons.time_now()}] Opcao invalida: {option}'
 
 
 # Attack
-async def main(origin, name_save_file='sqli_test.json', option='query string', file='wordlists/sqli/default_payload.txt', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
+async def main(target, wordlist_file='wordlists/sqli/default_payload.txt', option='query string', save_file='sqli_test.json', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1, verbose=True):
     try:
-        status, attk = await sqli(origin, name_save_file, option, file, ua_status, headers, cookies, timeout, SSL, proxies, interval, continue_, score_sqli, try_requests)
+        status, attk = await sqli(target, wordlist_file, option, save_file, ua_status, headers, cookies, timeout, SSL, proxies, interval, continue_, score_sqli, try_requests, verbose)
         if status:
-            return True, f'[#] Execucao finalizada'
+            return True, f'[#] Execucao finalizada: {attk}'
         else:
-            return False, f'[#] Execucao finalizada por erro {attk}'
+            return False, f'[#] Execucao finalizada: {attk}'
     except TypeError:
         return False, f'[#] Um erro de tipagem surgiu'
     except Exception as err:
