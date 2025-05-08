@@ -13,7 +13,7 @@ import useragent
 # redirect -> permite o redirecionamento
 # try_requests -> numero maximo de tentativas
 def request(url, timeout, SSL, proxies=None, headers=None, cookies=None, ua_status=False, redirect=False, try_requests=1):
-    if not origin.startswith('http://') and not origin.startswith('https://'):
+    if not url.startswith('http://') and not url.startswith('https://'):
         url = f'https://{url}' if SSL else f'http://{url}'
     while try_requests > 0:
         if ua_status:
