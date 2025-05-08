@@ -5,12 +5,12 @@ import jsonlog
 import commons
 import certificate
 
-async def subdomain(origin, file, filter_status_code=[], headers=None, ua_status=False, cookies=None, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False, try_requests=1):
+async def subdomain(origin, wordlist_file, save_file, filter_status_code, headers, ua_status, cookies, timeout, SSL, redirect, proxies, interval, advanced, try_requests, verbose):
 
     # CONSTANTES
-    name_save_file = 'subdomain_teste.json'
+    save_file = save_file if save_file.endswith('.json') else f'{save_file.rsplit(".", 1)[0]}.json'
 
-    status_payload, payloads = await commons.fileReader(file)
+    status_payload, payloads = await commons.fileReader(wordlist_file)
     if not status_payload:
         print(f'[-][{commons.time_now()}] {payloads}')
         return False, payloads
@@ -28,7 +28,8 @@ async def subdomain(origin, file, filter_status_code=[], headers=None, ua_status
 
             await asyncio.sleep(interval)
             
-            print(f'[+][{commons.time_now()}] Testando: {url}')
+            if verbose:
+                print(f'[+][{commons.time_now()}] Testando: {url}')
             status, r = commons.request(url=url, timeout=timeout, SSL=SSL, proxies=proxies, headers=headers, 
                                         ua_status=ua_status, cookies=cookies, redirect=redirect, try_requests=try_requests)
             
@@ -53,17 +54,17 @@ async def subdomain(origin, file, filter_status_code=[], headers=None, ua_status
                 
             # transforma em json object
             json_obj_response = jsonlog.ObjectJsonCommon.from_data(domain=origin, payload=payload, url=url, ip=ip, r=r, cert_metadata=cert_metadata, html_sample=html_sample)
-            write = await jsonlog.AsyncLogger(name_save_file).json_write(json_obj_response)
+            write = await jsonlog.AsyncLogger(save_file).json_write(json_obj_response)
 
-        return True, f'[+] Wordlist concluido: {file} & Gerado arquivo: {name_save_file}'
+        return True, f'[+] Wordlist concluido: {wordlist_file} & Gerado arquivo: {save_file}'
     
     await subdomain_async(payloads) # executa todo o loop e aguarda
 
             
 # Attack
-async def main(origin, file, filter_status_code=[], headers=None, ua_status=False, cookies=None, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False, try_requests=1):
+async def main(origin, wordlist_file, save_file='subdirectory_teste.json', filter_status_code=[], headers=None, ua_status=False, cookies=None, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False, try_requests=1, verbose=True):
     try:
-        status, attk = await subdomain(origin, file, filter_status_code, headers, ua_status, cookies, timeout, SSL, redirect, proxies, interval, advanced, try_requests)
+        status, attk = await subdomain(origin, wordlist_file, save_file, filter_status_code, headers, ua_status, cookies, timeout, SSL, redirect, proxies, interval, advanced, try_requests, verbose)
         if status:
             return True, f'[#] Execucao finalizada'
         else:
