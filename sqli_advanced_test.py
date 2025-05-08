@@ -143,8 +143,7 @@ async def response_analyzer(origin, payload, response, score_sqli, continue_):
     return details, score, html_sample
 
 
-async def sqli(origin, option='query string', file='wordlists/sqli/default_payload.txt', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
-    name_save_file = 'sqli_test.json'
+async def sqli(origin, name_save_file='sqli_test.json', option='query string', file='wordlists/sqli/default_payload.txt', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
     #scheme = 'https' if SSL else 'http'
     
     if file is None:
@@ -211,9 +210,9 @@ async def sqli(origin, option='query string', file='wordlists/sqli/default_paylo
 
 
 # Attack
-async def main(origin, option='query string', file='wordlists/sqli/default_payload.txt', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
+async def main(origin, name_save_file='sqli_test.json', option='query string', file='wordlists/sqli/default_payload.txt', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1):
     try:
-        status, attk = await sqli(origin, option, file, ua_status, headers, cookies, timeout, SSL, proxies, interval, continue_, score_sqli, try_requests)
+        status, attk = await sqli(origin, name_save_file, option, file, ua_status, headers, cookies, timeout, SSL, proxies, interval, continue_, score_sqli, try_requests)
         if status:
             return True, f'[#] Execucao finalizada'
         else:
