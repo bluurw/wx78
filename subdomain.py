@@ -5,7 +5,7 @@ import jsonlog
 import commons
 import certificate
 
-async def subdomain(origin, wordlist_file, save_file, filter_status_code, headers, ua_status, cookies, timeout, SSL, redirect, proxies, interval, advanced, try_requests, verbose):
+async def subdomain(target, wordlist_file, save_file, filter_status_code, headers, ua_status, cookies, timeout, SSL, redirect, proxies, interval, advanced, try_requests, verbose):
 
     # CONSTANTES
     save_file = save_file if save_file.endswith('.json') else f'{save_file.rsplit(".", 1)[0]}.json'
@@ -24,7 +24,7 @@ async def subdomain(origin, wordlist_file, save_file, filter_status_code, header
             ip = ''
             
             payload = payload.strip()
-            url = f"{origin.split('://')[0]}://{payload}.{origin.split('://')[1]}" if origin.startswith('http://') or origin.startswith('https://') else f'https://{payload}.{origin}' if SSL else f'http://{payload}.{origin}'
+            url = f"{target.split('://')[0]}://{payload}.{target.split('://')[1]}" if target.startswith('http://') or target.startswith('https://') else f'https://{payload}.{target}' if SSL else f'http://{payload}.{target}'
 
             await asyncio.sleep(interval)
             
@@ -45,7 +45,8 @@ async def subdomain(origin, wordlist_file, save_file, filter_status_code, header
                     redirect_history = [resp for resp in r.history if resp.status_code in [301, 302, 307]]    
                 
                 # ip sera coletado por padrao
-                status_ip, ip = utils.get_ip_host("".join(url[1:]))
+                target_domain = url.split('://')[1] if url.startswith('http://') or url.startswith('https://') else url
+                status_ip, ip = utils.get_ip_host(target_domain)
             
             else:
                 if len(filter_status_code) == 0 or (len(filter_status_code) != 0 and 404 in filter_status_code):
@@ -53,7 +54,7 @@ async def subdomain(origin, wordlist_file, save_file, filter_status_code, header
                
                 
             # transforma em json object
-            json_obj_response = jsonlog.ObjectJsonCommon.from_data(domain=origin, payload=payload, url=url, ip=ip, r=r, cert_metadata=cert_metadata, html_sample=html_sample)
+            json_obj_response = jsonlog.ObjectJsonCommon.from_data(domain=target, payload=payload, url=url, ip=ip, r=r, cert_metadata=cert_metadata, html_sample=html_sample)
             write = await jsonlog.AsyncLogger(save_file).json_write(json_obj_response)
 
         return True, f'[+] Wordlist concluido: {wordlist_file} & Gerado arquivo: {save_file}'
@@ -62,9 +63,9 @@ async def subdomain(origin, wordlist_file, save_file, filter_status_code, header
 
             
 # Attack
-async def main(origin, wordlist_file, save_file='subdirectory_teste.json', filter_status_code=[], headers=None, ua_status=False, cookies=None, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False, try_requests=1, verbose=True):
+async def main(target, wordlist_file, save_file='subdirectory_teste.json', filter_status_code=[], headers=None, ua_status=False, cookies=None, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False, try_requests=1, verbose=True):
     try:
-        status, attk = await subdomain(origin, wordlist_file, save_file, filter_status_code, headers, ua_status, cookies, timeout, SSL, redirect, proxies, interval, advanced, try_requests, verbose)
+        status, attk = await subdomain(target, wordlist_file, save_file, filter_status_code, headers, ua_status, cookies, timeout, SSL, redirect, proxies, interval, advanced, try_requests, verbose)
         if status:
             return True, f'[#] Execucao finalizada'
         else:
