@@ -23,7 +23,7 @@ async def sqli_score_system(payload, response):
 
 
 # response -> resposta bruta da requisicao
-async def sqli_waf_detection(response):
+async def waf_detection(response):
     score = 0
     waf_servers = [
         'cloudflare', 'sucuri', 'akamai', 'imperva', 'incapsula', 'barracuda',
@@ -60,7 +60,7 @@ async def sqli_waf_detection(response):
 # response -> resposta bruta da request
 # score_sqli -> score que atesta vulnerabilidade
 # continue_ -> valor booleano que decide se continua ou nao apos encontrar vulnerabilidade
-async def response_analyzer(target, payload, response, score_sqli, continue_):
+async def response_analyzer(target, payload, response, score_sqli):
     score = 0
     details = {}
     html_sample = ""
@@ -128,16 +128,13 @@ async def response_analyzer(target, payload, response, score_sqli, continue_):
         for error_msg in v:
             if re.search(error_msg.lower(), response.text.lower(), re.IGNORECASE | re.DOTALL):
                 details['database_type'] = k
+                details['work_sqli'] = True
                 
                 print(f'{" "*3}[>][{commons.time_now()}][{response.status_code}] Possivel vulnerabilidade: {target} -> {payload}')
                 print(f'{" "*3}[>] Tipo: {k} Msg: {error_msg} url: {response.url} Score: {score}')
-                
-                if not continue_:
-                    print(f'[#][{commons.time_now()}][{response.status_code}] Possivel vulnerabilidade: {target} -> {payload}')
-                    return details, score, html_sample
-                    break
-    
-    details['waf'] = await sqli_waf_detection(response) # verifica a chance de ter waf
+            else:
+                details['work_sqli'] = False
+    details['waf'] = await waf_detection(response) # verifica a chance de ter waf
     html_sample = response.text if response.status_code in [301, 302, 307] else response.text[:500] # recolhe amostra do http
 
     return details, score, html_sample
@@ -166,7 +163,10 @@ async def sqli(target, wordlist_file, option, save_file, ua_status, headers, coo
                                     ua_status=ua_status, redirect=False, proxies=proxies, try_requests=try_requests)
         
         if status:
-            details, score, html_sample = await response_analyzer(target, payload, r, continue_=continue_, score_sqli=score_sqli)
+            details, score, html_sample = await response_analyzer(target, payload, r, score_sqli=score_sqli)
+            if details['work_sqli'] and not continue_:
+                print(f'[#][{commons.time_now()}][{response.status_code}] Possivel vulnerabilidade: {target} -> {payload}')
+                return details, score, html_sample
         else:
             print(f'{" "*3}[>][{commons.time_now()}] Falha ao requisitar: {r}')
             details, score, html_sample = {}, 0, ''
