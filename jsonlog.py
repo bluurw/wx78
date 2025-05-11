@@ -62,13 +62,13 @@ class ObjectJsonCommon:
     redirect_history: List[str]
     response_certificate: Optional[dict]
     response_headers: Optional[dict]
-    html_sample: Optional[str]
+    banner: Optional[str]
 
     def to_dict(self):
         return asdict(self)
     
     @staticmethod
-    def from_data(domain, payload, url, ip, r, details={}, cert_metadata={}, html_sample=None):
+    def from_data(domain, payload, url, ip, r, details={}, cert_metadata={}, banner=None):
         status = True if 'requests.models.Response' in str(type(r)) else False
         return ObjectJsonCommon(
             domain=domain,
@@ -84,7 +84,7 @@ class ObjectJsonCommon:
             redirect_history=[resp for resp in r.history if resp.status_code in [301, 302, 307]] if status else [],
             response_certificate=cert_metadata,
             response_headers=dict(r.headers) if status else {},
-            html_sample=html_sample,
+            banner=banner,
         )
 
 
