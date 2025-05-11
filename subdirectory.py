@@ -22,7 +22,7 @@ async def subdirectory(target, wordlist_file, save_file, filter_status_code, hea
             # VARIAVEIS
             #get_all_path(r)
             #get_all_url(r)
-            html_sample = ''
+            banner = ''
             details = {}
             ip = ''
             
@@ -44,7 +44,7 @@ async def subdirectory(target, wordlist_file, save_file, filter_status_code, hea
                 #$ Amostra de codigo e historico de redirect sera coletada somente neste caso (removido)
                 if advanced:
                     cert_metadata = await certificate.certificate_vulnerability(url) # verifica se ha vulnerabilidade no certificado
-                    html_sample = r.text if r.status_code in [301, 302, 307] else r.text[:500]
+                    banner = r.text if r.status_code in [301, 302, 307] else r.text[:500]
                     redirect_history = [resp for resp in r.history if resp.status_code in [301, 302, 307]]
 
                     details['urls'] = HTMLAnalitcs.get_all_url(r)
@@ -59,7 +59,7 @@ async def subdirectory(target, wordlist_file, save_file, filter_status_code, hea
                
                 
             # transforma em json object
-            json_obj_response = jsonlog.ObjectJsonCommon.from_data(target, payload, url, ip, r, cert_metadata, html_sample)
+            json_obj_response = jsonlog.ObjectJsonCommon.from_data(target, payload, url, ip, r, cert_metadata, banner)
             write = await jsonlog.AsyncLogger(save_file).json_write(json_obj_response)
 
         return True, f'[#] Wordlist concluido: {wordlist_file} & Gerado arquivo: {save_file}'
