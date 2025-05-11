@@ -63,7 +63,7 @@ async def waf_detection(response):
 async def response_analyzer(target, payload, response, score_sqli):
     score = 0
     details = {}
-    html_sample = ""
+    banner = ""
     error_messages = {
         'mysql': [
             r"You have an error in your SQL syntax", r"mysql", r"SQL syntax", 
@@ -135,9 +135,9 @@ async def response_analyzer(target, payload, response, score_sqli):
             else:
                 details['work_sqli'] = False
     details['waf'] = await waf_detection(response) # verifica a chance de ter waf
-    html_sample = response.text if response.status_code in [301, 302, 307] else response.text[:500] # recolhe amostra do http
+    banner = response.text if response.status_code in [301, 302, 307] else response.text[:500] # recolhe amostra do http
 
-    return details, score, html_sample
+    return details, score, banner
 
 
 async def sqli(target, wordlist_file, option, save_file, ua_status, headers, cookies, timeout, SSL, proxies, interval, continue_, score_sqli, try_requests, verbose):
@@ -163,17 +163,17 @@ async def sqli(target, wordlist_file, option, save_file, ua_status, headers, coo
                                     ua_status=ua_status, redirect=False, proxies=proxies, try_requests=try_requests)
         
         if status:
-            details, score, html_sample = await response_analyzer(target, payload, r, score_sqli=score_sqli)
+            details, score, banner = await response_analyzer(target, payload, r, score_sqli=score_sqli)
             if details['work_sqli'] and not continue_:
                 print(f'[#][{commons.time_now()}][{response.status_code}] Possivel vulnerabilidade: {target} -> {payload}')
-                return details, score, html_sample
+                return details, score, banner
         else:
             print(f'{" "*3}[>][{commons.time_now()}] Falha ao requisitar: {r}')
-            details, score, html_sample = {}, 0, ''
+            details, score, banner = {}, 0, ''
         
         json_obj = jsonlog.ObjectJsonCommon.from_data(
             domain=target, payload=payload, url=url, ip='', r=r,
-            html_sample=html_sample, details=details
+            banner=banner, details=details
         )
         await jsonlog.AsyncLogger(save_file).json_write(json_obj)
 
