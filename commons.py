@@ -9,10 +9,11 @@ import useragent
 
 # timeout -> tempo maximo aguardando resposta
 # ssl -> se https
+# method -> metodo de requisicao 
+# payload -> carga util
 # ua_status -> se true, usa headers aleatorios, se houve algo em header, header sera ignorado.
 # redirect -> permite o redirecionamento
 # try_requests -> numero maximo de tentativas
-
 def request(url, timeout, SSL, method='GET', payload=None, proxies=None, headers=None, cookies=None, ua_status=False, redirect=False, try_requests=1):
     if not url.startswith('http://') and not url.startswith('https://'):
         url = f'https://{url}' if SSL else f'http://{url}'
