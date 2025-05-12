@@ -1,6 +1,7 @@
 import asyncio
 import socket
 import whois
+from urllib.parse import urljoin
 
 
 # host -> nome do host/domain str()
@@ -44,6 +45,13 @@ def get_dns(hostname):
         except Exception as err:
             dtdns[type_] = 'Sem informacao'
     return dtdns
+
+
+# url -> url original
+# outstreched -> caminho, acao, etc
+def merge_url(url, outstreched):
+    return urljoin(url, outstreched)
+
 
 # response_headers -> recebe o headers como entrada {}
 async def get_headers_metadata(response_headers):
