@@ -120,11 +120,11 @@ async def get_all_forms(target):
 
 
 async def get_form_details(form, payload):
-        action = form.get('action')
-        method = form.get('method', 'get').lower()
-        inputs = []
-        for input_tag in form.find_all('input'):
-            name = input_tag.get('name')
-            if name:
-                inputs.append({'type': input_tag.get('type', 'text'), 'name': name, 'value': payload})
-        return {'action': action, 'method': method, 'inputs': inputs}
+    action = form.get('action')
+    method = form.get('method', 'get').lower()
+    inputs = []
+    for input_tag in form.find_all('input'):
+        name = input_tag.get('name')
+        if name:
+            inputs.append({'type': input_tag.get('type', 'text'), 'name': name, 'value': payload})
+    return {'action': action, 'method': method, 'inputs': inputs}
