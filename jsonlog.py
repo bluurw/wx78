@@ -5,7 +5,7 @@ import asyncio
 import json
 import shutil
 
-import commons
+import utils # MODULO CONTENDO FUNCOES UTEIS
 
 @dataclass
 class ObjectJsonWhois:
@@ -79,7 +79,7 @@ class ObjectJsonCommon:
             response_time= r.elapsed.total_seconds() if status else None,
             error=status,
             error_details=None if status else r,
-            date_time=commons.time_now(),
+            date_time=utils.time_now(),
             details=details,
             redirect_history=[resp for resp in r.history if resp.status_code in [301, 302, 307]] if status else [],
             response_certificate=cert_metadata,
