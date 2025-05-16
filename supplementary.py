@@ -1,8 +1,5 @@
 import socket
 import whois
-from bs4 import BeautifulSoup
-
-from Request import Request
 
 
 # response_headers -> recebe o headers como entrada {}
@@ -108,23 +105,3 @@ async def waf_detection(response):
     }
     score += sum(v for v in waf_possibility.values())
     return True if score >= 10 else False
-
-
-async def get_all_forms(target):
-    status, r = Request(target).request()
-    if status:
-        soup = BeautifulSoup(r.text, 'html.parser')
-        return True, soup.find_all('form')
-    return False, 'Falha na requisição'
-
-
-
-async def get_form_details(form, payload):
-    action = form.get('action')
-    method = form.get('method', 'get').lower()
-    inputs = []
-    for input_tag in form.find_all('input'):
-        name = input_tag.get('name')
-        if name:
-            inputs.append({'type': input_tag.get('type', 'text'), 'name': name, 'value': payload})
-    return {'action': action, 'method': method, 'inputs': inputs}
