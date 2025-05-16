@@ -6,6 +6,7 @@ import utils
 import jsonlog
 import supplementary
 from Request import Request
+import HTMLAnalitcs
 
 class SQLI:
     def __init__(self, target, wordlist_file='wordlists/xss/default.txt', option='forms', save_file='output.json',
@@ -182,7 +183,6 @@ class SQLI:
         
         payloads = [p.strip() for p in payloads if p.strip()]
         
-        
         # QUERY STRING
         if self.option == 'query-string':
             if '*' not in self.target:
@@ -195,7 +195,6 @@ class SQLI:
                     print(f'[#][{utils.time_now()}][{response.status_code}] Possivel vulnerabilidade: {self.target} -> {payload}')
             
             return True, f'[#][{utils.time_now()}] Finalizado com {self.wordlist_file} → {self.save_file}'
-        
         
         # HEADERS
         if self.option == 'headers':
@@ -218,16 +217,15 @@ class SQLI:
             
             return True, f'[#][{utils.time_now()}] Finalizado com {self.wordlist_file} → {self.save_file}'
         
-        
         # FORMS
         if self.option == 'forms':
             method = 'GET'
-            status_forms, forms = await supplementary.get_all_forms(self.target)
+            status_forms, forms = await HTMLAnalitcs.get_all_forms(self.target)
             if not status_forms or not forms:
                 return False, f'[#][{utils.time_now()}] Nenhum formulário encontrado.'
             for payload in payloads:
                 for form in forms:
-                    form_details = await supplementary.get_form_details(form, payload)
+                    form_details = await HTMLAnalitcs.get_form_details(form, payload)
                     action = form_details['action']
                     url = utils.merge_url(self.target, action) if action else self.target
                     method = form_details['method'].upper()
