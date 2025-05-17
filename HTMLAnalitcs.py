@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 
 from Request import Request
 
+
 # target    -> alvo
 async def get_all_forms(target):
     status, r = Request(target).request()
@@ -25,8 +26,8 @@ async def get_form_details(form, payload):
     return {'action': action, 'method': method, 'inputs': inputs}
 
 
-# response -> bruto text da requisicao
 # coleta telefones
+# response  ->  resposta bruta da requisicao
 def get_all_telephones(response):
     set_ = set()
     rgx = r'^\+?\d{1,3}[\s\-]?\(?\d{1,4}\)?[\s\-]?\d{4,10}'
@@ -36,6 +37,7 @@ def get_all_telephones(response):
 
 
 # coleta emails
+# response  ->  resposta bruta da requisicao
 def get_all_emails(response):
     set_ = set()
     rgx = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
