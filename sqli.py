@@ -107,6 +107,7 @@ class SQLI:
             ],
         }
 
+        
         # SCORE SQLI POSSIBILITIES
         score = await self.sqli_score_system(payload, response)
         details['sqli_score'] = score
