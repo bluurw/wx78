@@ -9,7 +9,7 @@ from Request import Request
 
 
 class Subdirectory:
-    def __init__(self, target, wordlist_file='wordlists/xss/default.txt', filter_status_code=[], option='query-string', 
+    def __init__(self, target, wordlist_file='wordlists/subdirectory/wordlist.txt', filter_status_code=[], option='query-string', 
                  save_file='output.json', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None,
                  interval=0, continue_=False, try_requests=1, verbose=True, advanced=False):
 
