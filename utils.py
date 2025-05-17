@@ -3,8 +3,6 @@ import aiofiles
 from urllib.parse import urljoin
 from datetime import datetime as dt
 
-import commons
-
 
 def time_now():
     return dt.now().strftime('%d/%m/%Y %H:%M:%S') # hora atual
