@@ -5,8 +5,9 @@ import random
 import utils
 import jsonlog
 import supplementary
-from Request import Request
 import HTMLAnalitcs
+from Request import Request
+from signatures import SQLI_ERRORS, DATABASE_HEADERS
 
 class SQLI:
     def __init__(self, target, wordlist_file='wordlists/xss/default.txt', option='forms', save_file='output.json',
@@ -28,23 +29,20 @@ class SQLI:
         self.try_requests = try_requests
         self.verbose = verbose
     
-    
     # SCORE SQLI SYSTEM
     # payload   -> carga enviada
     # response  -> resposta bruta da requisicao 
     async def sqli_score_system(self, payload, response):
         score = 5  # Pontuação inicial, pre-validado (max: 20pts)
-        dbase_types = ['mysql', 'postgresql', 'sqlserver', 'oracle', 'mongodb', 'sqlite', 'redis', 'db2', 'mariadb', 'cockroachdb']
         suspicious = {
             'response_length': 3 if len(response.text) > 1500 else 2 if len(response.text) < 200 else 0,
             'response_time': 6 if response.elapsed.total_seconds() > 10 else 4 if response.elapsed.total_seconds() > 5 else 0,
             'response_code': 3 if response.status_code == 500 else 2 if response.status_code == 403 else 0,
-            'response_header': 3 if "X-Powered-By" in response.headers and any(b in response.headers.get('X-Powered-By', '').lower() for b in dbase_types) else 0,
+            'response_header': 3 if "X-Powered-By" in response.headers and any(b in response.headers.get('X-Powered-By', '').lower() for b in DATABASE_HEADERS) else 0,
         }
         score += sum(v for v in suspicious.values())
         return score
     
-
     # TRABALHAR O RESPONSE_ANALYZER
     # payload   -> carga enviada
     # response  -> resposta bruta da request
@@ -52,71 +50,17 @@ class SQLI:
         score = 0
         details = {}
         banner = ""
-        error_messages = {
-            'mysql': [
-                r"You have an error in your SQL syntax", r"mysql", r"SQL syntax", 
-                r"Query failed", r"database error", r"invalid query", r"incorrect syntax", 
-                r"error in your SQL syntax", r"unclosed quotation mark", r"unexpected EOF", 
-                r"unexpected token", r"unable to execute", r"invalid input"
-            ],
-            'postgresql': [
-                r"syntax error", r"invalid input syntax for type", r"pg_sleep", 
-                r"unrecognized statement", r"failed to open", r"unrecognized variable", 
-                r"missing FROM-clause entry", r"division by zero", r"invalid regular expression"
-            ],
-            'sqlserver': [
-                r"Msg \d+", r"Incorrect syntax", r"WAITFOR DELAY", r"incorrect syntax near", 
-                r"conversion failed when converting the varchar value", 
-                r"cannot insert the value", r"unclosed quotation mark after the character string", 
-                r"Invalid object name", r"Arithmetic overflow error"
-            ],
-            'oracle': [
-                r"ORA-\d+:.*", r"SQL command not properly ended", r"missing expression", r"invalid number", 
-                r"invalid identifier", r"ORA-00933:.*", r"ORA-01756:.*", r"ORA-00904:.*", 
-                r"ORA-01428:.*", r"ORA-01476:.*", r"ORA-12899: value too large for column.*"
-            ],
-            'mongodb': [
-                r"SyntaxError: Unexpected token.*", 
-                r"FieldError: Unknown field.*", 
-                r"BSONObj size.*", r"MongoError:", r"Cannot apply \$.*", 
-                r"Unterminated string in JSON.*"
-            ],
-            'sqlite': [
-                r"SQLite error:.*", r"no such column:.*", r"datatype mismatch", 
-                r"UNIQUE constraint failed.*", r"near \"\": syntax error", 
-                r"unrecognized token:.*", r"too many SQL variables", 
-                r"attempt to write a readonly database"
-            ],
-            'redis': [
-                r"ERR unknown command.*", r"ERR syntax error", r"WRONGTYPE Operation.*", 
-                r"OUT OF MEMORY", r"BUSY Redis is busy running a script"
-            ],
-            'db2': [
-                r"SQLCODE=-\d+", r"DB2 SQL Error:.*", r"SQLSTATE=.*", 
-                r"SQLCODE: -302", r"SQLERRMC=.*", 
-                r"A character that is not valid.*"
-            ],
-            'mariadb': [
-                r"You have an error in your SQL syntax", r"MariaDB server version.*", 
-                r"incorrect parameter count in the call to native function.*", 
-                r"Query execution failed.*"
-            ],
-            'cockroachdb': [
-                r"unexpected value", r"invalid syntax", r"pq: syntax error", 
-                r"relation .* does not exist", r"column .* does not exist"
-            ],
-        }
-
         
         # SCORE SQLI POSSIBILITIES
         score = await self.sqli_score_system(payload, response)
         details['sqli_score'] = score
 
-        for k, v in error_messages.items(): # itera sobre o dicionario
+        for k, v in SQLI_ERRORS.items(): # itera sobre o dicionario
             # if any(re.search(error_msg.lower(), response.text.lower()) for error_msg in v): # verifica o tipo de erro no retorno
             for error_msg in v:
                 if re.search(error_msg.lower(), response.text.lower(), re.IGNORECASE | re.DOTALL):
                     details['database_type'] = k
+                    details['message_error'] = error_msg.lower()
                     details['potential_sqli'] = True
                     
                     print(f'{" "*3}[>][{utils.time_now()}][{response.status_code}] Possivel vulnerabilidade: {self.target} -> {payload}')
