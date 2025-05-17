@@ -1,10 +1,11 @@
 import asyncio
-
 import ssl
 import socket
 from datetime import datetime as dt
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
+
+from Request import Request
 
 # requisita o certificado da pagina
 async def get_ssl_info(hostname, port=443):
@@ -41,11 +42,10 @@ async def certificate(hostname):
 
 # valida a integridade do certificado
 async def check_revoked(serial):
-    status, r = commons.request(
+    status, r = Request(
         'http://crl3.digicert.com/DigiCertGlobalG3TLSECCSHA3842020CA1-2.crl', # bd certificados
-        timeout = None,
-        SSL = False,
-        ) 
+        SSL = False
+        ).request()
     if status:
         crl = x509.load_der_x509_crl(r.content, default_backend())
         revogado = any(entry.serial_number == int(serial, 16) for entry in crl)
@@ -66,7 +66,7 @@ async def certificate_vulnerability(hostname):
     if status:
         # Testa confiabilidade do certificado
         test_url = f'https://{hostname}:443'
-        status, r = commons.request(test_url, timeout=10, SSL=True) # faz a validacao do cerificado
+        status, r = Request(test_url, timeout=10, SSL=True).request() # faz a validacao do cerificado
         # se retornar True, nao tem vulnerabilidade
         vulnerabilities_certificate['trusted_certificate'] = True if status else False
 
@@ -89,6 +89,4 @@ async def certificate_vulnerability(hostname):
     return vulnerabilities_certificate
 
 # Exemplo de uso
-# print(certificate_vulnerability('example.com'))
-
-
+# print(asyncio.run(certificate_vulnerability('www.socasadas.com')))
