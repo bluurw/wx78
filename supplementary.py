@@ -108,5 +108,5 @@ async def waf_detection(response):
     return True if score >= 10 else False
 
 
-#
+# EXAMPLE USE
 # print(get_ip_host('https://example.com'))
