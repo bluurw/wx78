@@ -32,9 +32,10 @@ async def get_headers_metadata(response_headers):
 
 # host -> nome do host/domain str()
 def get_ip_host(hostname):
-    hostname_ = hostname.split('://')[1] if hostname.startswith('http://') or hostname.startswith('https://') else hostname
+    hostname = hostname.split('://')[1] if hostname.startswith('http://') or hostname.startswith('https://') else hostname
+    print(hostname)
     try:
-        full_info = socket.gethostbyname_ex(hostname_)
+        full_info = socket.gethostbyname_ex(hostname)
         return True, full_info[2]
     except socket.gaierror:
         return False, 'Erro ao obter ip'
@@ -44,9 +45,9 @@ def get_ip_host(hostname):
 
 # domain -> recebe host/domain str()
 def get_whois(hostname):
-    hostname_ = hostname.split('://')[1] if hostname.startswith('http://') or hostname.startswith('https://') else hostname
+    hostname = hostname.split('://')[1] if hostname.startswith('http://') or hostname.startswith('https://') else hostname
     try:
-        inquiry = whois.whois(hostname_)
+        inquiry = whois.whois(hostname)
         return True, inquiry
     except Exception as e:
         return False, f'Erro ao consultar informacoes do dominio {e}'
@@ -105,3 +106,7 @@ async def waf_detection(response):
     }
     score += sum(v for v in waf_possibility.values())
     return True if score >= 10 else False
+
+
+#
+# print(get_ip_host('https://example.com'))
