@@ -6,8 +6,6 @@ from datetime import datetime as dt
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
-import commons
-
 # requisita o certificado da pagina
 async def get_ssl_info(hostname, port=443):
     try:
