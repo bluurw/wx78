@@ -29,7 +29,7 @@ async def get_form_details(form, payload):
 # coleta telefones
 def get_all_telephones(response):
     set_ = set()
-    rgx = re.compile(r'^\+?\d{1,3}[\s\-]?\(?\d{1,4}\)?[\s\-]?\d{4,10}')
+    rgx = r'^\+?\d{1,3}[\s\-]?\(?\d{1,4}\)?[\s\-]?\d{4,10}'
     for result in re.findall(rgx, response.text, re.DOTALL):
         set_.add(result)
     return set_
@@ -38,7 +38,7 @@ def get_all_telephones(response):
 # coleta emails
 def get_all_emails(response):
     set_ = set()
-    rgx = re.compile(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]')
+    rgx = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
     for result in re.findall(rgx, response.text, re.DOTALL):
         set_.add(result)
     return set_
