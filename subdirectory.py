@@ -2,83 +2,128 @@ import asyncio
 
 import utils
 import jsonlog
-import commons
 import certificate
 import HTMLAnalitcs
+import supplementary
+from Request import Request
 
-async def subdirectory(target, wordlist_file, save_file, filter_status_code, headers, ua_status, cookies, timeout, SSL, redirect, proxies, interval, advanced, try_requests, verbose):
 
-    # CONSTANTES
-    save_file = save_file if save_file.endswith('.json') else f'{save_file.rsplit(".", 1)[0]}.json'
+class Subdirectory:
+    def __init__(self, target, wordlist_file='wordlists/xss/default.txt', filter_status_code=[], option='query-string', 
+                 save_file='output.json', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None,
+                 interval=0, continue_=False, try_requests=1, verbose=True, advanced=False):
 
-    status_payload, payloads = await commons.fileReader(wordlist_file)
-    if not status_payload:
-        print(f'[#][{commons.time_now()}] {payloads}')
-        return False, payloads
+        self.target = utils.normalize_url(target, SSL)
+        self.wordlist_file = wordlist_file
+        self.filter_status_code = filter_status_code
+        self.option = option
+        self.save_file = save_file if save_file.endswith('.json') else f'{save_file.rsplit(".", 1)[0]}.json'
+        self.ua_status = ua_status
+        self.headers = headers
+        self.cookies = cookies
+        self.timeout = timeout
+        self.SSL = SSL
+        self.proxies = proxies
+        self.interval = interval
+        self.continue_ = continue_
+        self.try_requests = try_requests
+        self.verbose = verbose
+        self.advanced = advanced
     
-    # requisicao assincrona
-    async def subdirectory_async(payloads):
-        for payload in payloads:
-            # VARIAVEIS
-            #get_all_path(r)
-            #get_all_url(r)
-            banner = ''
-            details = {}
-            ip = ''
+
+    # ENGINE
+    # 
+    async def engine(self, payload, url, method='GET', params=None, headers=None):
+
+        ip = ''
+        banner = ''
+        details = {}
+
+        await asyncio.sleep(self.interval)
+
+        if self.verbose:
+            print(f'[+][{utils.time_now()}] Testando: {url}')
             
-            payload = payload.strip()
-            target_ = target if target.endswith('/') else target + '/'
-            url = f"{target_.split('://')[0]}://{target_.split('://')[1]}{payload}" if target_.startswith('http://') or target_.startswith('https://') else f'https://{target_}{payload}' if SSL else f'http://{target_}{payload}'
-
-            await asyncio.sleep(interval)
-
-            if verbose:
-                print(f'[+][{commons.time_now()}] Testando: {url}')
-            status, r = commons.request(url=url, timeout=timeout, SSL=SSL, proxies=proxies, headers=headers, 
-                                        ua_status=ua_status, cookies=cookies, redirect=redirect, try_requests=try_requests)
-            
-            if status:
-                if len(filter_status_code) == 0 or (len(filter_status_code) != 0 and r.status_code in filter_status_code):
-                    print(f'{" "*3}[>][{commons.time_now()}][{r.status_code}] {url}')
-                
-                #$ Amostra de codigo e historico de redirect sera coletada somente neste caso (removido)
-                if advanced:
-                    cert_metadata = await certificate.certificate_vulnerability(url) # verifica se ha vulnerabilidade no certificado
-                    banner = r.text if r.status_code in [301, 302, 307] else r.text[:500]
-                    redirect_history = [resp for resp in r.history if resp.status_code in [301, 302, 307]]
-
-                    details['urls'] = HTMLAnalitcs.get_all_url(r)
-                    details['paths'] = HTMLAnalitcs.get_all_path(r)
-                
-                # ip sera coletado por padrao
-                status_ip, ip = utils.get_ip_host("".join(url[1:]))
-            
-            else:
-                if len(filter_status_code) == 0 or (len(filter_status_code) != 0 and 404 in filter_status_code):
-                    print(f'{" "*3}[>][{commons.time_now()}][404] {url}: {r}')
-               
-                
-            # transforma em json object
-            json_obj_response = jsonlog.ObjectJsonCommon.from_data(target, payload, url, ip, r, cert_metadata, banner)
-            write = await jsonlog.AsyncLogger(save_file).json_write(json_obj_response)
-
-        return True, f'[#] Wordlist concluido: {wordlist_file} & Gerado arquivo: {save_file}'
-    
-    await subdirectory_async(payloads) # executa todo o loop e aguarda
-
-
-
-
-# Attack
-async def main(target, wordlist_file, save_file='subdirectory_teste.json', filter_status_code=[], headers=None, ua_status=False, cookies=None, timeout=10, SSL=True, redirect=False, proxies=None, interval=0, advanced=False, try_requests=1, verbose=True):
-    # Criar validacao para arquivos vazios
-    try:
-        status, attk = await subdirectory(target, wordlist_file, save_file, filter_status_code, headers, ua_status, cookies, timeout, SSL, redirect, proxies, interval, advanced, try_requests, verbose)
+        status, r = Request(url, timeout=self.timeout, SSL=self.SSL, method=method, params=params,
+                            proxies=self.proxies, headers=headers or self.headers,
+                            cookies=self.cookies, ua_status=self.ua_status, redirect=False,
+                            try_requests=self.try_requests).request()
+        
         if status:
-            return True, f'[#] Execucao finalizada'
+            if len(self.filter_status_code) == 0 or (len(self.filter_status_code) != 0 and r.status_code in self.filter_status_code):
+                print(f'{" "*3}[>][{utils.time_now()}][{r.status_code}] {url}')
+            
+            if self.advanced:
+                cert_metadata = await certificate.certificate_vulnerability(url)    # CERTIFICADO
+                banner = r.text if r.status_code in [301, 302, 307] else r.text[:500]   # BANNER
+                redirect_history = [resp for resp in r.history if resp.status_code in [301, 302, 307]]  # HISOTRICO
+
+                # INFO ADICIONAL DA PAGINA
+                details['urls'] = HTMLAnalitcs.get_all_url(r)
+                details['paths'] = HTMLAnalitcs.get_all_path(r)
+                details['emails'] = HTMLAnalitcs.get_all_emails(r)
+                details['telephone'] = HTMLAnalitcs.get_all_telephones(r)
+                
+                # COLETA IP
+                status_ip, ip = supplementary.get_ip_host("".join(url[1:]))
+            
         else:
-            return False, f'[#] Execucao finalizada por erro {attk}'
-    except TypeError:
-        return False, f'[#] Um erro de tipagem surgiu'
-    except Exception as err:
-        return False, f'[#] Um erro surgiu & a execucao foi interrompida {err}'
+            if len(self.filter_status_code) == 0 or (len(self.filter_status_code) != 0 and 404 in self.filter_status_code):
+                print(f'{" "*3}[>][{utils.time_now()}][404] {url}: {r}')
+        
+        # LOG
+        json_obj = jsonlog.ObjectJsonCommon.from_data(
+            domain=self.target, payload=payload, url=url,
+            ip=ip, r=r, banner=banner, details=details
+        )
+        await jsonlog.AsyncLogger(self.save_file).json_write(json_obj)
+    
+
+    async def run(self):
+
+        # CARGA PESADA
+        wordlist_file = self.wordlist_file
+        if wordlist_file is None:
+            print(f'[#][{utils.time_now()}] Usando payloads padrao')
+            wordlist_file = 'wordlists/sqli/default_payload.txt'
+
+        status_payload, payloads = await utils.fileReader(wordlist_file)
+        if not status_payload:
+            print(f'[-][{utils.time_now()}] {payloads}')
+            return False, payloads
+        
+        payloads = [p.strip() for p in payloads if p.strip()]
+
+
+        # QUERY STRING
+        if self.option == 'query-string':
+            for payload in payloads:
+                url = utils.merge_url(self.target, payload)
+                start_engine = await self.engine(payload, url)
+            
+            return True, f'[#][{utils.time_now()}] Finalizado com {self.wordlist_file} → {self.save_file}'
+        
+        else:
+            print(f'[#][{utils.time_now()}] Opcao informada inexistente')
+            return False, f'[#][{utils.time_now()}] Opcao informada inexistente'
+
+
+
+
+# MAIN
+async def main():
+    scanner = Subdirectory(
+        target='https://www.socasadas.com/',
+        wordlist_file='wordlists/subdirectory/wordlist.txt',
+        filter_status_code=[200, 301],
+        option='query-string',
+        save_file='subdir.json',
+        SSL=True,
+        verbose=True,
+        advanced=True,
+    )
+    status, result = await scanner.run()
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
