@@ -3,11 +3,12 @@ import random
 import re
 import html
 from bs4 import BeautifulSoup
+from difflib import SequenceMatcher
 
 import utils
 import jsonlog
-from Request import Request
 import HTMLAnalitcs
+from Request import Request
 
 class XSS:
     def __init__(self, target, wordlist_file='wordlists/xss/default.txt', option='forms', save_file='output.json',
@@ -28,7 +29,10 @@ class XSS:
         self.continue_ = continue_
         self.try_requests = try_requests
         self.verbose = verbose
-
+    
+    # response  -> reecebe resposta bruta
+    async def clean_html(self, response):
+        return re.sub(r'\s+|<[^>]+>', '', response.lower())
     
     # payload   -> carga enviada
     # response  -> resposta bruta da requisicao
@@ -37,17 +41,28 @@ class XSS:
             'xss_reflected_script': False,
             'xss_reflected_attr': False,
             'xss_reflected_html': False,
+            'similarity': 0,
         }
 
         soup = BeautifulSoup(response.content, 'html.parser')
         unescaped_html = html.unescape(response.text)
 
+        # REMOVE DIRT ELEMENTS
+        response_clear = await self.clean_html(response.text)
+
         for param in payload:
+            
+            # SIMILARITY
+            similarity = SequenceMatcher(None, param.lower(), response_clear).ratio()
+            details['similarity'] = f'{similarity*100}%'
+
+            # SCRIPT SEARCH
             for script in soup.find_all('script'):
                 if script.string and param in script.string:
                     details['xss_reflected_script'] = True
                     break
-
+            
+            # TAGS SEARCH
             for tag in soup.find_all():
                 for attr, value in tag.attrs.items():
                     value = ' '.join(value) if isinstance(value, list) else str(value)
@@ -69,7 +84,8 @@ class XSS:
         
         await asyncio.sleep(self.interval)
 
-        print(f'[+][{utils.time_now()}] Tentando: {url}')
+        if self.verbose:
+            print(f'[+][{utils.time_now()}] Tentando: {url} \n{" "*3}[>]Payload: {payload}')
         
         # REQUISICAO
         status, r = Request(url, timeout=self.timeout, SSL=self.SSL, method=method, params=params,
@@ -77,14 +93,16 @@ class XSS:
                                     cookies=self.cookies, ua_status=self.ua_status, redirect=False,
                                     try_requests=self.try_requests).request()
         
-        if self.verbose:
-            print(f'{" "*3}[>][{utils.time_now()}] Payload: {payload}')
-        
         if status:
             # ANALYSIS RESPONSE
             details, banner = await self.detect_reflected_xss([payload], r)
             if any(details.values()) and not self.continue_:
-                print(f'[#][{utils.time_now()}][{r.status_code}] Possível vulnerabilidade: {url} ← {payload}')
+                print(f'[!][{utils.time_now()}][{r.status_code}] Possivel vulnerabilidade: {self.target} -> {payload}')
+                if self.verbose:
+                    print(f'{" "*3}[>] Reflected Script: {details["xss_reflected_script"]}')
+                    print(f'{" "*3}[>] Reflected Attr: {details["xss_reflected_attr"]}')
+                    print(f'{" "*3}[>] Reflected HTML: {details["xss_reflected_html"]}')
+                    print(f'{" "*3}[>] Similarity: {details["similarity"]}\n')
         
         else:
             print(f'{" "*3}[>][{utils.time_now()}] Falha ao requisitar: {r}')
@@ -164,7 +182,7 @@ class XSS:
 # MAIN
 async def main():
     scanner = XSS(
-        target='https://www.socasadas.com/?s=*',
+        target='http://127.0.0.1:5000/',
         wordlist_file='wordlists/xss/default.txt',
         option='forms',
         save_file='xss_result.json',
