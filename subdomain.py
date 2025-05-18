@@ -61,6 +61,9 @@ class Subdomain:
                 banner = r.text if r.status_code in [301, 302, 307] else r.text[:500]   # BANNER
                 redirect_history = [resp for resp in r.history if resp.status_code in [301, 302, 307]]  # HISOTRICO
 
+                # WAF
+                details['waf'] = await supplementary.test_waf_detection(r) # verifica a chance de ter waf
+
                 # INFO
                 details['urls'] = HTMLAnalitcs.get_all_url(r)
                 details['paths'] = HTMLAnalitcs.get_all_path(r)
