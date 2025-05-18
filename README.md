@@ -39,8 +39,8 @@ python main.py
 
 ## **TO DO**
 
-Concilar todos em um main
-Desenvolver a interface web que utilize o .json
+- Concilar todos em um main
+- Desenvolver a interface web que utilize o .json
 
 ## **Compatibilidade**
 - Linux: OK
