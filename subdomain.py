@@ -114,8 +114,6 @@ class Subdomain:
             return False, f'[#][{utils.time_now()}] Opcao informada inexistente'
 
 
-
-
 # MAIN
 async def main(target, wordlist_file='wordlists/subdomain/wordlist.txt', filter_status_code=[], option='query-string', 
                 save_file='output.json', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, redirect=False,
