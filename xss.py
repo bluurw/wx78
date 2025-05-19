@@ -180,18 +180,11 @@ class XSS:
 
 
 # MAIN
-async def main():
-    scanner = XSS(
-        target='http://127.0.0.1:5000/',
-        wordlist_file='wordlists/xss/default.txt',
-        option='forms',
-        save_file='xss_result.json',
-        verbose=True
-    )
+async def main(target, wordlist_file='wordlists/xss/default.txt', option='query-string', save_file='output.json', 
+                ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, 
+                continue_=False, try_requests=1, verbose=True):
+    
+    scanner = XSS(target, wordlist_file, option, save_file, ua_status, headers, cookies,
+                    timeout, SSL, proxies, interval, continue_, try_requests, verbose
+                  )
     status, result = await scanner.run()
-    print(result)
-
-
-if __name__ == '__main__':
-    asyncio.run(main())
-
