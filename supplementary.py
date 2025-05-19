@@ -33,7 +33,6 @@ async def get_headers_metadata(response_headers):
 # host -> nome do host/domain str()
 def get_ip_host(hostname):
     hostname = hostname.split('://')[1] if hostname.startswith('http://') or hostname.startswith('https://') else hostname
-    print(hostname)
     try:
         full_info = socket.gethostbyname_ex(hostname)
         return True, full_info[2]
