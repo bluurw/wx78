@@ -13,7 +13,7 @@ requests.txt
 
 # FOLDER CUSTOM
 MiTM
-wordlists
+# wordlists
 user-agent
 probe
 outdated
