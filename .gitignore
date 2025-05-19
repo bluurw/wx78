@@ -14,7 +14,7 @@ requests.txt
 # FOLDER CUSTOM
 MiTM
 # wordlists
-user-agent
+# user-agent
 probe
 outdated
 
@@ -24,4 +24,5 @@ idor.py
 functions.py
 setup.py
 sqli.py
+wx78_test.json
 # useragent.py
