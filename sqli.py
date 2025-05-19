@@ -198,19 +198,12 @@ class SQLI:
             return False, f'[#][{utils.time_now()}] Opcao informada inexistente'
 
 
-
 # MAIN
-async def main():
-    scanner = SQLI(
-        target='https://www.socasadas.com',
-        wordlist_file='wordlists/sqli/default.txt',
-        option='forms',
-        save_file='xsss_objetct.json',
-        verbose=True
-    )
+async def main(target, wordlist_file='wordlists/sqli/default.txt', option='query-string', save_file='output.json', 
+                ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None, interval=0, 
+                continue_=False, try_requests=1, verbose=True):
+    
+    scanner = SQLI(target, wordlist_file, option, save_file, ua_status, headers, cookies,
+                    timeout, SSL, proxies, interval, continue_, try_requests, verbose
+                  )
     status, result = await scanner.run()
-    print(result)
-
-
-if __name__ == '__main__':
-    asyncio.run(main())
