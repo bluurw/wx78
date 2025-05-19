@@ -10,7 +10,7 @@ from Request import Request
 
 class Subdomain:
     def __init__(self, target, wordlist_file='wordlists/subdomain/wordlist.txt', filter_status_code=[], option='query-string', 
-                 save_file='output.json', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, proxies=None,
+                 save_file='output.json', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, redirect=False, proxies=None,
                  interval=0, continue_=False, try_requests=1, verbose=True, advanced=False):
 
         self.target = utils.normalize_url(target, SSL)
@@ -23,6 +23,7 @@ class Subdomain:
         self.cookies = cookies
         self.timeout = timeout
         self.SSL = SSL
+        self.redirect = redirect
         self.proxies = proxies
         self.interval = interval
         self.continue_ = continue_
@@ -47,7 +48,7 @@ class Subdomain:
             
         status, r = Request(url, timeout=self.timeout, SSL=self.SSL, method=method, params=params,
                             proxies=self.proxies, headers=headers or self.headers,
-                            cookies=self.cookies, ua_status=self.ua_status, redirect=False,
+                            cookies=self.cookies, ua_status=self.ua_status, redirect=self.redirect,
                             try_requests=self.try_requests).request()
         
         if status:
@@ -116,19 +117,11 @@ class Subdomain:
 
 
 # MAIN
-async def main():
-    scanner = Subdomain(
-        target='https://socasadas.com',
-        wordlist_file='wordlists/subdomain/wordlist.txt',
-        filter_status_code=[200, 301],
-        option='query-string',
-        save_file='subdir.json',
-        SSL=True,
-        verbose=True,
-        advanced=True,
-    )
+async def main(target, wordlist_file='wordlists/subdomain/wordlist.txt', filter_status_code=[], option='query-string', 
+                save_file='output.json', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, redirect=False,
+                proxies=None, interval=0, continue_=False, try_requests=1, verbose=True, advanced=False):
+    
+    scanner = Subdomain(target, wordlist_file, filter_status_code, option, save_file, ua_status, headers, 
+                        cookies, timeout, SSL, redirect, proxies, interval, continue_, try_requests, verbose, advanced
+                        )
     status, result = await scanner.run()
-
-
-if __name__ == '__main__':
-    asyncio.run(main())
