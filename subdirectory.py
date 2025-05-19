@@ -108,22 +108,12 @@ class Subdirectory:
             return False, f'[#][{utils.time_now()}] Opcao informada inexistente'
 
 
-
-
 # MAIN
-async def main():
-    scanner = Subdirectory(
-        target='https://www.socasadas.com/',
-        wordlist_file='wordlists/subdirectory/wordlist.txt',
-        filter_status_code=[200, 301],
-        option='query-string',
-        save_file='subdir.json',
-        SSL=True,
-        verbose=True,
-        advanced=True,
-    )
+async def main(target, wordlist_file='wordlists/subdirectory/wordlist.txt', filter_status_code=[], option='query-string', 
+                save_file='output.json', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, redirect=False,
+                proxies=None, interval=0, continue_=False, try_requests=1, verbose=True, advanced=False):
+    
+    scanner = Subdomain(target, wordlist_file, filter_status_code, option, save_file, ua_status, headers, 
+                        cookies, timeout, SSL, redirect, proxies, interval, continue_, try_requests, verbose, advanced
+                        )
     status, result = await scanner.run()
-
-
-if __name__ == '__main__':
-    asyncio.run(main())
