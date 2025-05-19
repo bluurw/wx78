@@ -113,7 +113,7 @@ async def main(target, wordlist_file='wordlists/subdirectory/wordlist.txt', filt
                 save_file='output.json', ua_status=False, headers=None, cookies=None, timeout=10, SSL=True, redirect=False,
                 proxies=None, interval=0, continue_=False, try_requests=1, verbose=True, advanced=False):
     
-    scanner = Subdomain(target, wordlist_file, filter_status_code, option, save_file, ua_status, headers, 
-                        cookies, timeout, SSL, redirect, proxies, interval, continue_, try_requests, verbose, advanced
-                        )
+    scanner = Subdirectory(target, wordlist_file, filter_status_code, option, save_file, ua_status, headers, cookies, 
+                            timeout, SSL, redirect, proxies, interval, continue_, try_requests, verbose, advanced
+                            )
     status, result = await scanner.run()
