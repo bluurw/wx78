@@ -105,7 +105,7 @@ class Subdomain:
         # QUERY STRING
         if self.option == 'query-string':
             for payload in payloads:
-                test_url = f'{self.target.split("://")[0]}://{payload}.{self.target.split("://")[1]}' if self.target.startswith('https://') or target.startswith('http://') else f'https://{payload}.{target}'
+                test_url = f'{self.target.split("://")[0]}://{payload}.{self.target.split("://")[1]}' if self.target.startswith('https://') or self.target.startswith('http://') else f'https://{payload}.{self.target}'
                 start_engine = await self.engine(test_url, payload)
             return True, f'[#][{utils.time_now()}] Finalizado com {self.wordlist_file} → {self.save_file}'
         
